@@ -4,7 +4,6 @@ package cercago_test
 
 import (
 	"context"
-	"errors"
 	"os"
 	"testing"
 
@@ -13,7 +12,7 @@ import (
 	"github.com/matrices/cerca-go/option"
 )
 
-func TestOAuthConnectWithOptionalParams(t *testing.T) {
+func TestManualPagination(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
 		baseURL = envURL
@@ -25,20 +24,21 @@ func TestOAuthConnectWithOptionalParams(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	_, err := client.OAuth.Connect(
-		context.TODO(),
-		"google",
-		cercago.OAuthConnectParams{
-			ReturnOrigin: cercago.F("https://app.example.com"),
-			Scope:        cercago.F("env:org_abc123:fleet_abc123"),
-			Scopes:       cercago.F([]string{"email", "profile"}),
-		},
-	)
+	page, err := client.Agents.List(context.TODO(), cercago.AgentListParams{})
 	if err != nil {
-		var apierr *cercago.Error
-		if errors.As(err, &apierr) {
-			t.Log(string(apierr.DumpRequest(true)))
-		}
 		t.Fatalf("err should be nil: %s", err.Error())
+	}
+	for _, agent := range page.Agents {
+		t.Logf("%+v\n", agent.ID)
+	}
+	// The mock server isn't going to give us real pagination
+	page, err = page.GetNextPage()
+	if err != nil {
+		t.Fatalf("err should be nil: %s", err.Error())
+	}
+	if page != nil {
+		for _, agent := range page.Agents {
+			t.Logf("%+v\n", agent.ID)
+		}
 	}
 }

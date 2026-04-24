@@ -13,6 +13,7 @@ import (
 	"github.com/matrices/cerca-go/internal/param"
 	"github.com/matrices/cerca-go/internal/requestconfig"
 	"github.com/matrices/cerca-go/option"
+	"github.com/matrices/cerca-go/packages/pagination"
 )
 
 // AuthService contains methods and other services that help with interacting with
@@ -41,11 +42,25 @@ func (r *AuthService) Context(ctx context.Context, opts ...option.RequestOption)
 	return res, err
 }
 
-func (r *AuthService) ListEnvironments(ctx context.Context, query AuthListEnvironmentsParams, opts ...option.RequestOption) (res *AuthListEnvironmentsResponse, err error) {
+func (r *AuthService) ListFleets(ctx context.Context, query AuthListFleetsParams, opts ...option.RequestOption) (res *pagination.FleetsCursorPage[Fleet], err error) {
+	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
-	path := "auth/environments"
-	err = requestconfig.ExecuteNewRequest(ctx, http.MethodGet, path, query, &res, opts...)
-	return res, err
+	opts = append([]option.RequestOption{option.WithResponseInto(&raw)}, opts...)
+	path := "auth/fleets"
+	cfg, err := requestconfig.NewRequestConfig(ctx, http.MethodGet, path, query, &res, opts...)
+	if err != nil {
+		return nil, err
+	}
+	err = cfg.Execute()
+	if err != nil {
+		return nil, err
+	}
+	res.SetPageConfig(cfg, raw)
+	return res, nil
+}
+
+func (r *AuthService) ListFleetsAutoPaging(ctx context.Context, query AuthListFleetsParams, opts ...option.RequestOption) *pagination.FleetsCursorPageAutoPager[Fleet] {
+	return pagination.NewFleetsCursorPageAutoPager(r.ListFleets(ctx, query, opts...))
 }
 
 type AuthContextResponse struct {
@@ -71,32 +86,32 @@ func (r authContextResponseJSON) RawJSON() string {
 	return r.raw
 }
 
-type AuthListEnvironmentsResponse struct {
-	Cursor       string                           `json:"cursor" api:"required,nullable"`
-	Environments []Environment                    `json:"environments" api:"required"`
-	HasMore      bool                             `json:"hasMore" api:"required"`
-	JSON         authListEnvironmentsResponseJSON `json:"-"`
+type AuthFleetsResponse struct {
+	Cursor  string                 `json:"cursor" api:"required,nullable"`
+	Fleets  []Fleet                `json:"fleets" api:"required"`
+	HasMore bool                   `json:"hasMore" api:"required"`
+	JSON    authFleetsResponseJSON `json:"-"`
 }
 
-// authListEnvironmentsResponseJSON contains the JSON metadata for the struct
-// [AuthListEnvironmentsResponse]
-type authListEnvironmentsResponseJSON struct {
-	Cursor       apijson.Field
-	Environments apijson.Field
-	HasMore      apijson.Field
-	raw          string
-	ExtraFields  map[string]apijson.Field
+// authFleetsResponseJSON contains the JSON metadata for the struct
+// [AuthFleetsResponse]
+type authFleetsResponseJSON struct {
+	Cursor      apijson.Field
+	Fleets      apijson.Field
+	HasMore     apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
 }
 
-func (r *AuthListEnvironmentsResponse) UnmarshalJSON(data []byte) (err error) {
+func (r *AuthFleetsResponse) UnmarshalJSON(data []byte) (err error) {
 	return apijson.UnmarshalRoot(data, r)
 }
 
-func (r authListEnvironmentsResponseJSON) RawJSON() string {
+func (r authFleetsResponseJSON) RawJSON() string {
 	return r.raw
 }
 
-type AuthListEnvironmentsParams struct {
+type AuthListFleetsParams struct {
 	// Opaque pagination cursor returned by a previous request.
 	Cursor param.Field[string] `query:"cursor"`
 	// Maximum number of items to return. Defaults to 20 and preserves parseInt
@@ -104,9 +119,8 @@ type AuthListEnvironmentsParams struct {
 	Limit param.Field[string] `query:"limit"`
 }
 
-// URLQuery serializes [AuthListEnvironmentsParams]'s query parameters as
-// `url.Values`.
-func (r AuthListEnvironmentsParams) URLQuery() (v url.Values) {
+// URLQuery serializes [AuthListFleetsParams]'s query parameters as `url.Values`.
+func (r AuthListFleetsParams) URLQuery() (v url.Values) {
 	return apiquery.MarshalWithSettings(r, apiquery.QuerySettings{
 		ArrayFormat:  apiquery.ArrayQueryFormatComma,
 		NestedFormat: apiquery.NestedQueryFormatBrackets,

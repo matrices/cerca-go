@@ -13,7 +13,7 @@ import (
 	"github.com/matrices/cerca-go/option"
 )
 
-func TestCredentialListWithOptionalParams(t *testing.T) {
+func TestSandboxExecWithOptionalParams(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
 		baseURL = envURL
@@ -25,12 +25,14 @@ func TestCredentialListWithOptionalParams(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	_, err := client.Credentials.List(
+	_, err := client.Sandbox.Exec(
 		context.TODO(),
-		"env:org_abc123:fleet_abc123",
-		cercago.CredentialListParams{
-			Cursor: cercago.F("cursor_abc123"),
-			Limit:  cercago.F("20"),
+		"agent_abc123",
+		cercago.SandboxExecParams{
+			Command:          cercago.F("command"),
+			MaxBuffer:        cercago.F(0.000000),
+			ExecutionTimeout: cercago.F(30.000000),
+			Workdir:          cercago.F("/home/user"),
 		},
 	)
 	if err != nil {
@@ -42,7 +44,7 @@ func TestCredentialListWithOptionalParams(t *testing.T) {
 	}
 }
 
-func TestCredentialDelete(t *testing.T) {
+func TestSandboxReadWithOptionalParams(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
 		baseURL = envURL
@@ -54,10 +56,14 @@ func TestCredentialDelete(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	_, err := client.Credentials.Delete(
+	_, err := client.Sandbox.Read(
 		context.TODO(),
-		"env:org_abc123:fleet_abc123",
-		"env:org_abc123:fleet_abc123::conn_abc123",
+		"agent_abc123",
+		cercago.SandboxReadParams{
+			Path:   cercago.F("path"),
+			Limit:  cercago.F(0.000000),
+			Offset: cercago.F(0.000000),
+		},
 	)
 	if err != nil {
 		var apierr *cercago.Error
@@ -68,7 +74,7 @@ func TestCredentialDelete(t *testing.T) {
 	}
 }
 
-func TestCredentialNewAPIKeyWithOptionalParams(t *testing.T) {
+func TestSandboxWrite(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
 		baseURL = envURL
@@ -80,13 +86,12 @@ func TestCredentialNewAPIKeyWithOptionalParams(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	_, err := client.Credentials.NewAPIKey(
+	_, err := client.Sandbox.Write(
 		context.TODO(),
-		"env:org_abc123:fleet_abc123",
-		cercago.CredentialNewAPIKeyParams{
-			APIKey:       cercago.F("sk_live_..."),
-			Provider:     cercago.F("custom"),
-			AccountLabel: cercago.F("primary"),
+		"agent_abc123",
+		cercago.SandboxWriteParams{
+			Content: cercago.F("content"),
+			Path:    cercago.F("path"),
 		},
 	)
 	if err != nil {

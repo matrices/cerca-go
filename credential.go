@@ -15,6 +15,7 @@ import (
 	"github.com/matrices/cerca-go/internal/param"
 	"github.com/matrices/cerca-go/internal/requestconfig"
 	"github.com/matrices/cerca-go/option"
+	"github.com/matrices/cerca-go/packages/pagination"
 )
 
 // CredentialService contains methods and other services that help with interacting
@@ -36,15 +37,29 @@ func NewCredentialService(opts ...option.RequestOption) (r *CredentialService) {
 	return
 }
 
-func (r *CredentialService) List(ctx context.Context, scope string, query CredentialListParams, opts ...option.RequestOption) (res *CredentialListResponse, err error) {
+func (r *CredentialService) List(ctx context.Context, scope string, query CredentialListParams, opts ...option.RequestOption) (res *pagination.ConnectionsCursorPage[Connection], err error) {
+	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
+	opts = append([]option.RequestOption{option.WithResponseInto(&raw)}, opts...)
 	if scope == "" {
 		err = errors.New("missing required scope parameter")
 		return nil, err
 	}
 	path := fmt.Sprintf("credentials/%s", scope)
-	err = requestconfig.ExecuteNewRequest(ctx, http.MethodGet, path, query, &res, opts...)
-	return res, err
+	cfg, err := requestconfig.NewRequestConfig(ctx, http.MethodGet, path, query, &res, opts...)
+	if err != nil {
+		return nil, err
+	}
+	err = cfg.Execute()
+	if err != nil {
+		return nil, err
+	}
+	res.SetPageConfig(cfg, raw)
+	return res, nil
+}
+
+func (r *CredentialService) ListAutoPaging(ctx context.Context, scope string, query CredentialListParams, opts ...option.RequestOption) *pagination.ConnectionsCursorPageAutoPager[Connection] {
+	return pagination.NewConnectionsCursorPageAutoPager(r.List(ctx, scope, query, opts...))
 }
 
 func (r *CredentialService) Delete(ctx context.Context, scope string, connectionID string, opts ...option.RequestOption) (res *CredentialDeleteResponse, err error) {
@@ -141,31 +156,6 @@ func (r CredentialType) IsKnown() bool {
 		return true
 	}
 	return false
-}
-
-type CredentialListResponse struct {
-	Connections []Connection               `json:"connections" api:"required"`
-	Cursor      string                     `json:"cursor" api:"required,nullable"`
-	HasMore     bool                       `json:"hasMore" api:"required"`
-	JSON        credentialListResponseJSON `json:"-"`
-}
-
-// credentialListResponseJSON contains the JSON metadata for the struct
-// [CredentialListResponse]
-type credentialListResponseJSON struct {
-	Connections apijson.Field
-	Cursor      apijson.Field
-	HasMore     apijson.Field
-	raw         string
-	ExtraFields map[string]apijson.Field
-}
-
-func (r *CredentialListResponse) UnmarshalJSON(data []byte) (err error) {
-	return apijson.UnmarshalRoot(data, r)
-}
-
-func (r credentialListResponseJSON) RawJSON() string {
-	return r.raw
 }
 
 type CredentialDeleteResponse struct {
