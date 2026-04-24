@@ -13,7 +13,7 @@ import (
 	"github.com/matrices/cerca-go/option"
 )
 
-func TestCredentialListWithOptionalParams(t *testing.T) {
+func TestApprovalGrantListWithOptionalParams(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
 		baseURL = envURL
@@ -25,10 +25,10 @@ func TestCredentialListWithOptionalParams(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	_, err := client.Credentials.List(
+	_, err := client.ApprovalGrants.List(
 		context.TODO(),
-		"env:org_abc123:fleet_abc123",
-		cercago.CredentialListParams{
+		"agent_abc123",
+		cercago.ApprovalGrantListParams{
 			Cursor: cercago.F("cursor_abc123"),
 			Limit:  cercago.F("20"),
 		},
@@ -42,7 +42,7 @@ func TestCredentialListWithOptionalParams(t *testing.T) {
 	}
 }
 
-func TestCredentialDelete(t *testing.T) {
+func TestApprovalGrantDelete(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
 		baseURL = envURL
@@ -54,10 +54,10 @@ func TestCredentialDelete(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	_, err := client.Credentials.Delete(
+	_, err := client.ApprovalGrants.Delete(
 		context.TODO(),
-		"env:org_abc123:fleet_abc123",
-		"env:org_abc123:fleet_abc123::conn_abc123",
+		"agent_abc123",
+		"grant_abc123",
 	)
 	if err != nil {
 		var apierr *cercago.Error
@@ -68,7 +68,7 @@ func TestCredentialDelete(t *testing.T) {
 	}
 }
 
-func TestCredentialNewAPIKeyWithOptionalParams(t *testing.T) {
+func TestApprovalGrantDeleteForThread(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
 		baseURL = envURL
@@ -80,14 +80,37 @@ func TestCredentialNewAPIKeyWithOptionalParams(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	_, err := client.Credentials.NewAPIKey(
+	_, err := client.ApprovalGrants.DeleteForThread(
 		context.TODO(),
-		"env:org_abc123:fleet_abc123",
-		cercago.CredentialNewAPIKeyParams{
-			APIKey:       cercago.F("sk_live_..."),
-			Provider:     cercago.F("custom"),
-			AccountLabel: cercago.F("primary"),
-		},
+		"agent_abc123",
+		"thread_abc123",
+		"grant_abc123",
+	)
+	if err != nil {
+		var apierr *cercago.Error
+		if errors.As(err, &apierr) {
+			t.Log(string(apierr.DumpRequest(true)))
+		}
+		t.Fatalf("err should be nil: %s", err.Error())
+	}
+}
+
+func TestApprovalGrantListForThread(t *testing.T) {
+	baseURL := "http://localhost:4010"
+	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
+		baseURL = envURL
+	}
+	if !testutil.CheckTestServer(t, baseURL) {
+		return
+	}
+	client := cercago.NewClient(
+		option.WithBaseURL(baseURL),
+		option.WithAPIKey("My API Key"),
+	)
+	_, err := client.ApprovalGrants.ListForThread(
+		context.TODO(),
+		"agent_abc123",
+		"thread_abc123",
 	)
 	if err != nil {
 		var apierr *cercago.Error

@@ -13,7 +13,7 @@ import (
 	"github.com/matrices/cerca-go/option"
 )
 
-func TestOAuthConnectWithOptionalParams(t *testing.T) {
+func TestToolListForAgent(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
 		baseURL = envURL
@@ -25,15 +25,7 @@ func TestOAuthConnectWithOptionalParams(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	_, err := client.OAuth.Connect(
-		context.TODO(),
-		"google",
-		cercago.OAuthConnectParams{
-			ReturnOrigin: cercago.F("https://app.example.com"),
-			Scope:        cercago.F("env:org_abc123:fleet_abc123"),
-			Scopes:       cercago.F([]string{"email", "profile"}),
-		},
-	)
+	_, err := client.Tools.ListForAgent(context.TODO(), "agent_abc123")
 	if err != nil {
 		var apierr *cercago.Error
 		if errors.As(err, &apierr) {

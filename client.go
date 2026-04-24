@@ -16,13 +16,25 @@ import (
 // interacting with the cerca API. You should not instantiate this client directly,
 // and instead use the [NewClient] method instead.
 type Client struct {
-	Options      []option.RequestOption
-	Auth         *AuthService
-	OAuth        *OAuthService
-	Credentials  *CredentialService
-	Environments *EnvironmentService
-	Cells        *CellService
-	Models       *ModelService
+	Options        []option.RequestOption
+	Auth           *AuthService
+	OAuth          *OAuthService
+	Credentials    *CredentialService
+	Fleets         *FleetService
+	ToolSources    *ToolSourceService
+	Webhooks       *WebhookService
+	Events         *EventService
+	Agents         *AgentService
+	Threads        *ThreadService
+	Context        *ContextService
+	Connections    *ConnectionService
+	Schedules      *ScheduleService
+	Approvals      *ApprovalService
+	ApprovalGrants *ApprovalGrantService
+	Logs           *LogService
+	Sandbox        *SandboxService
+	Tools          *ToolService
+	Models         *ModelService
 }
 
 // DefaultClientOptions read from the environment (CERCA_API_KEY, CERCA_BASE_URL).
@@ -50,8 +62,20 @@ func NewClient(opts ...option.RequestOption) (r *Client) {
 	r.Auth = NewAuthService(opts...)
 	r.OAuth = NewOAuthService(opts...)
 	r.Credentials = NewCredentialService(opts...)
-	r.Environments = NewEnvironmentService(opts...)
-	r.Cells = NewCellService(opts...)
+	r.Fleets = NewFleetService(opts...)
+	r.ToolSources = NewToolSourceService(opts...)
+	r.Webhooks = NewWebhookService(opts...)
+	r.Events = NewEventService(opts...)
+	r.Agents = NewAgentService(opts...)
+	r.Threads = NewThreadService(opts...)
+	r.Context = NewContextService(opts...)
+	r.Connections = NewConnectionService(opts...)
+	r.Schedules = NewScheduleService(opts...)
+	r.Approvals = NewApprovalService(opts...)
+	r.ApprovalGrants = NewApprovalGrantService(opts...)
+	r.Logs = NewLogService(opts...)
+	r.Sandbox = NewSandboxService(opts...)
+	r.Tools = NewToolService(opts...)
 	r.Models = NewModelService(opts...)
 
 	return

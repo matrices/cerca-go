@@ -24,10 +24,10 @@ func TestUsage(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	thread, err := client.Cells.Threads.New(
+	thread, err := client.Threads.New(
 		context.TODO(),
-		"cell_abc123",
-		cercago.CellThreadNewParams{
+		"agent_abc123",
+		cercago.ThreadNewParams{
 			UserMessage: cercago.F("What's on my calendar today?"),
 		},
 	)

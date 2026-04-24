@@ -13,7 +13,7 @@ import (
 	"github.com/matrices/cerca-go/option"
 )
 
-func TestAuthContext(t *testing.T) {
+func TestLogListForAgentWithOptionalParams(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
 		baseURL = envURL
@@ -25,7 +25,14 @@ func TestAuthContext(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	_, err := client.Auth.Context(context.TODO())
+	_, err := client.Logs.ListForAgent(
+		context.TODO(),
+		"agent_abc123",
+		cercago.LogListForAgentParams{
+			Cursor: cercago.F("cursor_abc123"),
+			Limit:  cercago.F("20"),
+		},
+	)
 	if err != nil {
 		var apierr *cercago.Error
 		if errors.As(err, &apierr) {
@@ -35,7 +42,7 @@ func TestAuthContext(t *testing.T) {
 	}
 }
 
-func TestAuthListFleetsWithOptionalParams(t *testing.T) {
+func TestLogListForThreadWithOptionalParams(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
 		baseURL = envURL
@@ -47,10 +54,15 @@ func TestAuthListFleetsWithOptionalParams(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	_, err := client.Auth.ListFleets(context.TODO(), cercago.AuthListFleetsParams{
-		Cursor: cercago.F("cursor_abc123"),
-		Limit:  cercago.F("20"),
-	})
+	_, err := client.Logs.ListForThread(
+		context.TODO(),
+		"agent_abc123",
+		"thread_abc123",
+		cercago.LogListForThreadParams{
+			Cursor: cercago.F("cursor_abc123"),
+			Limit:  cercago.F("20"),
+		},
+	)
 	if err != nil {
 		var apierr *cercago.Error
 		if errors.As(err, &apierr) {
