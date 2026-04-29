@@ -543,12 +543,12 @@ func (r AgentDeleteResponseSuccess) IsKnown() bool {
 }
 
 type AgentNewParams struct {
-	UserID        param.Field[string]             `json:"userId" api:"required"`
 	Configuration param.Field[ConfigurationParam] `json:"configuration"`
 	FleetID       param.Field[string]             `json:"fleetId"`
 	// Arbitrary string metadata stored on an agent. Runtime enforces maximum key and
 	// value sizes.
 	Metadata param.Field[MetadataParam] `json:"metadata"`
+	UserID   param.Field[string]        `json:"userId"`
 }
 
 func (r AgentNewParams) MarshalJSON() (data []byte, err error) {

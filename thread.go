@@ -380,12 +380,14 @@ type Thread struct {
 	CompiledContext      CompiledContext      `json:"compiledContext" api:"required,nullable"`
 	CompletedAt          string               `json:"completedAt" api:"required,nullable"`
 	ComposedSystemPrompt string               `json:"composedSystemPrompt" api:"required,nullable"`
-	ContextWindow        ContextWindow        `json:"contextWindow" api:"required"`
+	ContextWindow        ContextWindow        `json:"contextWindow" api:"required,nullable"`
 	CreatedAt            string               `json:"createdAt" api:"required"`
 	Depth                float64              `json:"depth" api:"required"`
 	Error                string               `json:"error" api:"required,nullable"`
+	HasMoreMessages      bool                 `json:"hasMoreMessages" api:"required"`
 	Instructions         string               `json:"instructions" api:"required,nullable"`
 	LastTurnStatus       ThreadLastTurnStatus `json:"lastTurnStatus" api:"required,nullable"`
+	MessageCursor        float64              `json:"messageCursor" api:"required,nullable"`
 	Messages             []Message            `json:"messages" api:"required"`
 	Model                string               `json:"model" api:"required"`
 	ParentThreadID       string               `json:"parentThreadId" api:"required,nullable"`
@@ -398,10 +400,11 @@ type Thread struct {
 	// `closed` threads are terminal.
 	Status                 Status                            `json:"status" api:"required"`
 	SubThreads             []ThreadSummary                   `json:"subThreads" api:"required"`
-	ToolSnapshot           []shared.ToolName                 `json:"toolSnapshot" api:"required"`
+	Tools                  []shared.ToolName                 `json:"tools" api:"required"`
 	Turns                  []Turn                            `json:"turns" api:"required"`
 	UpdatedAt              string                            `json:"updatedAt" api:"required"`
 	UserMessage            string                            `json:"userMessage" api:"required"`
+	ActiveTurnModel        string                            `json:"activeTurnModel" api:"nullable"`
 	ExternalToolNamespaces ThreadExternalToolNamespacesUnion `json:"externalToolNamespaces"`
 	JSON                   threadJSON                        `json:"-"`
 }
@@ -419,8 +422,10 @@ type threadJSON struct {
 	CreatedAt              apijson.Field
 	Depth                  apijson.Field
 	Error                  apijson.Field
+	HasMoreMessages        apijson.Field
 	Instructions           apijson.Field
 	LastTurnStatus         apijson.Field
+	MessageCursor          apijson.Field
 	Messages               apijson.Field
 	Model                  apijson.Field
 	ParentThreadID         apijson.Field
@@ -430,10 +435,11 @@ type threadJSON struct {
 	ScheduleSeq            apijson.Field
 	Status                 apijson.Field
 	SubThreads             apijson.Field
-	ToolSnapshot           apijson.Field
+	Tools                  apijson.Field
 	Turns                  apijson.Field
 	UpdatedAt              apijson.Field
 	UserMessage            apijson.Field
+	ActiveTurnModel        apijson.Field
 	ExternalToolNamespaces apijson.Field
 	raw                    string
 	ExtraFields            map[string]apijson.Field
@@ -640,10 +646,19 @@ func (r ThreadNewParams) MarshalJSON() (data []byte, err error) {
 }
 
 type ThreadGetParams struct {
+	// Return messages newer than this sequence number. Mutually exclusive with
+	// `beforeSeq`.
+	AfterSeq param.Field[string] `query:"afterSeq"`
+	// Return messages older than this sequence number. Mutually exclusive with
+	// `afterSeq`.
+	BeforeSeq param.Field[string] `query:"beforeSeq"`
 	// When true, includes debug-only compiled context fields.
 	Debug param.Field[ThreadGetParamsDebug] `query:"debug"`
 	// When true, includes message content in the thread detail.
 	IncludeMessages param.Field[ThreadGetParamsIncludeMessages] `query:"includeMessages"`
+	// Maximum number of messages to include. Set to 0 to return metadata without
+	// messages.
+	MessageLimit param.Field[string] `query:"messageLimit"`
 }
 
 // URLQuery serializes [ThreadGetParams]'s query parameters as `url.Values`.

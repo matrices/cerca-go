@@ -63,8 +63,11 @@ func TestThreadGetWithOptionalParams(t *testing.T) {
 		"agent_abc123",
 		"thread_abc123",
 		cercago.ThreadGetParams{
+			AfterSeq:        cercago.F("42"),
+			BeforeSeq:       cercago.F("42"),
 			Debug:           cercago.F(cercago.ThreadGetParamsDebugFalse),
 			IncludeMessages: cercago.F(cercago.ThreadGetParamsIncludeMessagesTrue),
+			MessageLimit:    cercago.F("50"),
 		},
 	)
 	if err != nil {
