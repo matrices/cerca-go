@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"time"
 
 	"github.com/matrices/cerca-go/internal/apijson"
 	"github.com/matrices/cerca-go/internal/param"
@@ -105,15 +106,16 @@ func (r *ScheduleService) Trigger(ctx context.Context, agentID string, scheduleI
 type ScheduledThread struct {
 	ID           string              `json:"id" api:"required"`
 	CreatedAt    string              `json:"createdAt" api:"required"`
-	Cron         string              `json:"cron" api:"required"`
 	Enabled      bool                `json:"enabled" api:"required"`
 	Name         string              `json:"name" api:"required"`
 	NextAt       string              `json:"nextAt" api:"required,nullable"`
 	Prompt       string              `json:"prompt" api:"required"`
 	Timezone     string              `json:"timezone" api:"required"`
 	UpdatedAt    string              `json:"updatedAt" api:"required"`
+	Cron         string              `json:"cron"`
 	Instructions string              `json:"instructions"`
 	Model        string              `json:"model"`
+	RunAt        time.Time           `json:"runAt" format:"date-time"`
 	Tools        []shared.ToolSpec   `json:"tools"`
 	JSON         scheduledThreadJSON `json:"-"`
 }
@@ -122,15 +124,16 @@ type ScheduledThread struct {
 type scheduledThreadJSON struct {
 	ID           apijson.Field
 	CreatedAt    apijson.Field
-	Cron         apijson.Field
 	Enabled      apijson.Field
 	Name         apijson.Field
 	NextAt       apijson.Field
 	Prompt       apijson.Field
 	Timezone     apijson.Field
 	UpdatedAt    apijson.Field
+	Cron         apijson.Field
 	Instructions apijson.Field
 	Model        apijson.Field
+	RunAt        apijson.Field
 	Tools        apijson.Field
 	raw          string
 	ExtraFields  map[string]apijson.Field
@@ -222,11 +225,12 @@ func (r scheduleTriggerResponseJSON) RawJSON() string {
 }
 
 type ScheduleNewParams struct {
-	Cron         param.Field[string]                 `json:"cron" api:"required"`
 	Name         param.Field[string]                 `json:"name" api:"required"`
 	Prompt       param.Field[string]                 `json:"prompt" api:"required"`
+	Cron         param.Field[string]                 `json:"cron"`
 	Instructions param.Field[string]                 `json:"instructions"`
 	Model        param.Field[string]                 `json:"model"`
+	RunAt        param.Field[time.Time]              `json:"runAt" format:"date-time"`
 	Timezone     param.Field[string]                 `json:"timezone"`
 	Tools        param.Field[[]shared.ToolSpecParam] `json:"tools"`
 }
@@ -242,6 +246,7 @@ type ScheduleUpdateParams struct {
 	Model        param.Field[string]                 `json:"model"`
 	Name         param.Field[string]                 `json:"name"`
 	Prompt       param.Field[string]                 `json:"prompt"`
+	RunAt        param.Field[time.Time]              `json:"runAt" format:"date-time"`
 	Timezone     param.Field[string]                 `json:"timezone"`
 	Tools        param.Field[[]shared.ToolSpecParam] `json:"tools"`
 }

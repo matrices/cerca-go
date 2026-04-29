@@ -27,7 +27,6 @@ func TestAgentNewWithOptionalParams(t *testing.T) {
 		option.WithAPIKey("My API Key"),
 	)
 	_, err := client.Agents.New(context.TODO(), cercago.AgentNewParams{
-		UserID: cercago.F("userId"),
 		Configuration: cercago.F(cercago.ConfigurationParam{
 			Approvals: cercago.F(cercago.ApprovalPolicyParam{
 				TimeoutMs: cercago.F(0.000000),
@@ -43,6 +42,7 @@ func TestAgentNewWithOptionalParams(t *testing.T) {
 		Metadata: cercago.F(cercago.MetadataParam{
 			"project": "alpha",
 		}),
+		UserID: cercago.F("userId"),
 	})
 	if err != nil {
 		var apierr *cercago.Error

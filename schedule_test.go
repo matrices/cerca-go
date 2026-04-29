@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/matrices/cerca-go"
 	"github.com/matrices/cerca-go/internal/testutil"
@@ -30,11 +31,12 @@ func TestScheduleNewWithOptionalParams(t *testing.T) {
 		context.TODO(),
 		"agent_abc123",
 		cercago.ScheduleNewParams{
-			Cron:         cercago.F("cron"),
 			Name:         cercago.F("name"),
 			Prompt:       cercago.F("prompt"),
+			Cron:         cercago.F("cron"),
 			Instructions: cercago.F("instructions"),
 			Model:        cercago.F("model"),
+			RunAt:        cercago.F(time.Now()),
 			Timezone:     cercago.F("timezone"),
 			Tools:        cercago.F([]shared.ToolSpecParam{"sandbox.*"}),
 		},
@@ -71,6 +73,7 @@ func TestScheduleUpdateWithOptionalParams(t *testing.T) {
 			Model:        cercago.F("model"),
 			Name:         cercago.F("name"),
 			Prompt:       cercago.F("prompt"),
+			RunAt:        cercago.F(time.Now()),
 			Timezone:     cercago.F("timezone"),
 			Tools:        cercago.F([]shared.ToolSpecParam{"sandbox.*"}),
 		},
