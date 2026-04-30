@@ -35,7 +35,7 @@ func NewAuthService(opts ...option.RequestOption) (r *AuthService) {
 	return
 }
 
-// Context
+// Retrieve context
 func (r *AuthService) Context(ctx context.Context, opts ...option.RequestOption) (res *AuthContextResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	path := "auth/context"
@@ -43,7 +43,7 @@ func (r *AuthService) Context(ctx context.Context, opts ...option.RequestOption)
 	return res, err
 }
 
-// Fleets
+// List fleets
 func (r *AuthService) ListFleets(ctx context.Context, query AuthListFleetsParams, opts ...option.RequestOption) (res *pagination.FleetsCursorPage[Fleet], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -61,7 +61,7 @@ func (r *AuthService) ListFleets(ctx context.Context, query AuthListFleetsParams
 	return res, nil
 }
 
-// Fleets
+// List fleets
 func (r *AuthService) ListFleetsAutoPaging(ctx context.Context, query AuthListFleetsParams, opts ...option.RequestOption) *pagination.FleetsCursorPageAutoPager[Fleet] {
 	return pagination.NewFleetsCursorPageAutoPager(r.ListFleets(ctx, query, opts...))
 }

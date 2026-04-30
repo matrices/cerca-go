@@ -39,7 +39,7 @@ func NewToolService(opts ...option.RequestOption) (r *ToolService) {
 	return
 }
 
-// Tool Sources
+// Create tool source
 func (r *ToolService) New(ctx context.Context, fleetID string, body ToolNewParams, opts ...option.RequestOption) (res *ToolSource, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if fleetID == "" {
@@ -51,7 +51,7 @@ func (r *ToolService) New(ctx context.Context, fleetID string, body ToolNewParam
 	return res, err
 }
 
-// Tool Source
+// Retrieve tool source
 func (r *ToolService) Get(ctx context.Context, fleetID string, sourceID string, opts ...option.RequestOption) (res *ToolSource, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if fleetID == "" {
@@ -67,7 +67,7 @@ func (r *ToolService) Get(ctx context.Context, fleetID string, sourceID string, 
 	return res, err
 }
 
-// Tool Source
+// Update tool source
 func (r *ToolService) Update(ctx context.Context, fleetID string, sourceID string, body ToolUpdateParams, opts ...option.RequestOption) (res *ToolSource, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if fleetID == "" {
@@ -83,7 +83,7 @@ func (r *ToolService) Update(ctx context.Context, fleetID string, sourceID strin
 	return res, err
 }
 
-// Tool Sources
+// List tool sources
 func (r *ToolService) List(ctx context.Context, fleetID string, query ToolListParams, opts ...option.RequestOption) (res *pagination.SourcesCursorPage[ToolSource], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -105,12 +105,12 @@ func (r *ToolService) List(ctx context.Context, fleetID string, query ToolListPa
 	return res, nil
 }
 
-// Tool Sources
+// List tool sources
 func (r *ToolService) ListAutoPaging(ctx context.Context, fleetID string, query ToolListParams, opts ...option.RequestOption) *pagination.SourcesCursorPageAutoPager[ToolSource] {
 	return pagination.NewSourcesCursorPageAutoPager(r.List(ctx, fleetID, query, opts...))
 }
 
-// Tool Source
+// Delete tool source
 func (r *ToolService) Delete(ctx context.Context, fleetID string, sourceID string, opts ...option.RequestOption) (err error) {
 	opts = slices.Concat(r.Options, opts)
 	opts = append([]option.RequestOption{option.WithHeader("Accept", "*/*")}, opts...)

@@ -38,7 +38,7 @@ func NewApprovalRequestService(opts ...option.RequestOption) (r *ApprovalRequest
 	return
 }
 
-// Approvals
+// List approvals
 func (r *ApprovalRequestService) List(ctx context.Context, agentID string, query ApprovalRequestListParams, opts ...option.RequestOption) (res *pagination.ApprovalRequestsCursorPage[ApprovalRequest], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -60,12 +60,12 @@ func (r *ApprovalRequestService) List(ctx context.Context, agentID string, query
 	return res, nil
 }
 
-// Approvals
+// List approvals
 func (r *ApprovalRequestService) ListAutoPaging(ctx context.Context, agentID string, query ApprovalRequestListParams, opts ...option.RequestOption) *pagination.ApprovalRequestsCursorPageAutoPager[ApprovalRequest] {
 	return pagination.NewApprovalRequestsCursorPageAutoPager(r.List(ctx, agentID, query, opts...))
 }
 
-// Approval
+// Create approval
 func (r *ApprovalRequestService) Resolve(ctx context.Context, agentID string, threadID string, approvalID string, body ApprovalRequestResolveParams, opts ...option.RequestOption) (res *ApprovalRequest, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {

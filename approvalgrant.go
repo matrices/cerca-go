@@ -37,7 +37,7 @@ func NewApprovalGrantService(opts ...option.RequestOption) (r *ApprovalGrantServ
 	return
 }
 
-// Approval Grants
+// List approval grants
 func (r *ApprovalGrantService) List(ctx context.Context, agentID string, query ApprovalGrantListParams, opts ...option.RequestOption) (res *pagination.GrantsCursorPage[ApprovalGrant], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -59,12 +59,12 @@ func (r *ApprovalGrantService) List(ctx context.Context, agentID string, query A
 	return res, nil
 }
 
-// Approval Grants
+// List approval grants
 func (r *ApprovalGrantService) ListAutoPaging(ctx context.Context, agentID string, query ApprovalGrantListParams, opts ...option.RequestOption) *pagination.GrantsCursorPageAutoPager[ApprovalGrant] {
 	return pagination.NewGrantsCursorPageAutoPager(r.List(ctx, agentID, query, opts...))
 }
 
-// Approval Grant
+// Delete approval grant
 func (r *ApprovalGrantService) Delete(ctx context.Context, agentID string, grantID string, opts ...option.RequestOption) (res *ApprovalGrantDeleteResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -80,7 +80,7 @@ func (r *ApprovalGrantService) Delete(ctx context.Context, agentID string, grant
 	return res, err
 }
 
-// Approval Grant
+// Delete approval grant
 func (r *ApprovalGrantService) DeleteForThread(ctx context.Context, agentID string, threadID string, grantID string, opts ...option.RequestOption) (res *ApprovalGrantDeleteForThreadResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -100,7 +100,7 @@ func (r *ApprovalGrantService) DeleteForThread(ctx context.Context, agentID stri
 	return res, err
 }
 
-// Approval Grants
+// List approval grants
 func (r *ApprovalGrantService) ListForThread(ctx context.Context, agentID string, threadID string, opts ...option.RequestOption) (res *[]ApprovalGrant, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {

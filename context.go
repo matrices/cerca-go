@@ -37,7 +37,7 @@ func NewContextService(opts ...option.RequestOption) (r *ContextService) {
 	return
 }
 
-// Entry
+// Retrieve context entry
 func (r *ContextService) Get(ctx context.Context, agentID string, query ContextGetParams, opts ...option.RequestOption) (res *Entry, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -49,7 +49,7 @@ func (r *ContextService) Get(ctx context.Context, agentID string, query ContextG
 	return res, err
 }
 
-// Context
+// List context entries
 func (r *ContextService) List(ctx context.Context, agentID string, query ContextListParams, opts ...option.RequestOption) (res *pagination.EntriesCursorPage[EntrySummary], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -71,12 +71,12 @@ func (r *ContextService) List(ctx context.Context, agentID string, query Context
 	return res, nil
 }
 
-// Context
+// List context entries
 func (r *ContextService) ListAutoPaging(ctx context.Context, agentID string, query ContextListParams, opts ...option.RequestOption) *pagination.EntriesCursorPageAutoPager[EntrySummary] {
 	return pagination.NewEntriesCursorPageAutoPager(r.List(ctx, agentID, query, opts...))
 }
 
-// Entry
+// Delete context entry
 func (r *ContextService) Delete(ctx context.Context, agentID string, body ContextDeleteParams, opts ...option.RequestOption) (res *ContextDeleteResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -88,7 +88,7 @@ func (r *ContextService) Delete(ctx context.Context, agentID string, body Contex
 	return res, err
 }
 
-// Search
+// Search context
 func (r *ContextService) Search(ctx context.Context, agentID string, query ContextSearchParams, opts ...option.RequestOption) (res *pagination.ResultsCursorPage[SearchResult], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -110,12 +110,12 @@ func (r *ContextService) Search(ctx context.Context, agentID string, query Conte
 	return res, nil
 }
 
-// Search
+// Search context
 func (r *ContextService) SearchAutoPaging(ctx context.Context, agentID string, query ContextSearchParams, opts ...option.RequestOption) *pagination.ResultsCursorPageAutoPager[SearchResult] {
 	return pagination.NewResultsCursorPageAutoPager(r.Search(ctx, agentID, query, opts...))
 }
 
-// Entry
+// Update context entry
 func (r *ContextService) Write(ctx context.Context, agentID string, body ContextWriteParams, opts ...option.RequestOption) (res *Entry, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {

@@ -40,7 +40,7 @@ func NewThreadService(opts ...option.RequestOption) (r *ThreadService) {
 	return
 }
 
-// Threads
+// Create thread
 func (r *ThreadService) New(ctx context.Context, agentID string, body ThreadNewParams, opts ...option.RequestOption) (res *Thread, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -52,7 +52,7 @@ func (r *ThreadService) New(ctx context.Context, agentID string, body ThreadNewP
 	return res, err
 }
 
-// Thread
+// Retrieve thread
 func (r *ThreadService) Get(ctx context.Context, agentID string, threadID string, query ThreadGetParams, opts ...option.RequestOption) (res *Thread, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -68,7 +68,7 @@ func (r *ThreadService) Get(ctx context.Context, agentID string, threadID string
 	return res, err
 }
 
-// Threads
+// List threads
 func (r *ThreadService) List(ctx context.Context, agentID string, query ThreadListParams, opts ...option.RequestOption) (res *pagination.ThreadsCursorPage[ThreadSummary], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -90,7 +90,7 @@ func (r *ThreadService) List(ctx context.Context, agentID string, query ThreadLi
 	return res, nil
 }
 
-// Threads
+// List threads
 func (r *ThreadService) ListAutoPaging(ctx context.Context, agentID string, query ThreadListParams, opts ...option.RequestOption) *pagination.ThreadsCursorPageAutoPager[ThreadSummary] {
 	return pagination.NewThreadsCursorPageAutoPager(r.List(ctx, agentID, query, opts...))
 }
@@ -146,7 +146,7 @@ func (r *ThreadService) Compact(ctx context.Context, agentID string, threadID st
 	return res, err
 }
 
-// Turns
+// Create turn
 func (r *ThreadService) StartTurn(ctx context.Context, agentID string, threadID string, body ThreadStartTurnParams, opts ...option.RequestOption) (res *Turn, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {

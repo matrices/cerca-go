@@ -40,7 +40,7 @@ func NewEventService(opts ...option.RequestOption) (r *EventService) {
 	return
 }
 
-// Events
+// List events
 func (r *EventService) ListForAgent(ctx context.Context, agentID string, query EventListForAgentParams, opts ...option.RequestOption) (res *pagination.EventsCursorPage[SubscriptionEvent], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -62,12 +62,12 @@ func (r *EventService) ListForAgent(ctx context.Context, agentID string, query E
 	return res, nil
 }
 
-// Events
+// List events
 func (r *EventService) ListForAgentAutoPaging(ctx context.Context, agentID string, query EventListForAgentParams, opts ...option.RequestOption) *pagination.EventsCursorPageAutoPager[SubscriptionEvent] {
 	return pagination.NewEventsCursorPageAutoPager(r.ListForAgent(ctx, agentID, query, opts...))
 }
 
-// Events
+// List events
 func (r *EventService) ListForFleet(ctx context.Context, fleetID string, query EventListForFleetParams, opts ...option.RequestOption) (res *pagination.EventsCursorPage[SubscriptionEvent], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -89,12 +89,12 @@ func (r *EventService) ListForFleet(ctx context.Context, fleetID string, query E
 	return res, nil
 }
 
-// Events
+// List events
 func (r *EventService) ListForFleetAutoPaging(ctx context.Context, fleetID string, query EventListForFleetParams, opts ...option.RequestOption) *pagination.EventsCursorPageAutoPager[SubscriptionEvent] {
 	return pagination.NewEventsCursorPageAutoPager(r.ListForFleet(ctx, fleetID, query, opts...))
 }
 
-// Events
+// List events
 func (r *EventService) ListForThread(ctx context.Context, agentID string, threadID string, query EventListForThreadParams, opts ...option.RequestOption) (res *pagination.EventsCursorPage[SubscriptionEvent], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -120,7 +120,7 @@ func (r *EventService) ListForThread(ctx context.Context, agentID string, thread
 	return res, nil
 }
 
-// Events
+// List events
 func (r *EventService) ListForThreadAutoPaging(ctx context.Context, agentID string, threadID string, query EventListForThreadParams, opts ...option.RequestOption) *pagination.EventsCursorPageAutoPager[SubscriptionEvent] {
 	return pagination.NewEventsCursorPageAutoPager(r.ListForThread(ctx, agentID, threadID, query, opts...))
 }

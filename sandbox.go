@@ -34,7 +34,7 @@ func NewSandboxService(opts ...option.RequestOption) (r *SandboxService) {
 	return
 }
 
-// Exec
+// Execute sandbox command
 func (r *SandboxService) Exec(ctx context.Context, agentID string, body SandboxExecParams, opts ...option.RequestOption) (res *ExecResult, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -46,7 +46,7 @@ func (r *SandboxService) Exec(ctx context.Context, agentID string, body SandboxE
 	return res, err
 }
 
-// Read
+// Read sandbox file
 func (r *SandboxService) Read(ctx context.Context, agentID string, body SandboxReadParams, opts ...option.RequestOption) (res *ReadResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -58,7 +58,7 @@ func (r *SandboxService) Read(ctx context.Context, agentID string, body SandboxR
 	return res, err
 }
 
-// Write
+// Write sandbox file
 func (r *SandboxService) Write(ctx context.Context, agentID string, body SandboxWriteParams, opts ...option.RequestOption) (res *SandboxWriteResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {

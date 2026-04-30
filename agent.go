@@ -40,7 +40,7 @@ func NewAgentService(opts ...option.RequestOption) (r *AgentService) {
 	return
 }
 
-// Agents
+// Create agent
 func (r *AgentService) New(ctx context.Context, body AgentNewParams, opts ...option.RequestOption) (res *Agent, err error) {
 	opts = slices.Concat(r.Options, opts)
 	path := "agents"
@@ -48,7 +48,7 @@ func (r *AgentService) New(ctx context.Context, body AgentNewParams, opts ...opt
 	return res, err
 }
 
-// Agent
+// Retrieve agent
 func (r *AgentService) Get(ctx context.Context, agentID string, opts ...option.RequestOption) (res *Agent, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -60,7 +60,7 @@ func (r *AgentService) Get(ctx context.Context, agentID string, opts ...option.R
 	return res, err
 }
 
-// Agent
+// Update agent
 func (r *AgentService) Update(ctx context.Context, agentID string, body AgentUpdateParams, opts ...option.RequestOption) (res *Agent, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -72,7 +72,7 @@ func (r *AgentService) Update(ctx context.Context, agentID string, body AgentUpd
 	return res, err
 }
 
-// Agents
+// List agents
 func (r *AgentService) List(ctx context.Context, query AgentListParams, opts ...option.RequestOption) (res *pagination.AgentsCursorPage[AgentSummary], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -90,12 +90,12 @@ func (r *AgentService) List(ctx context.Context, query AgentListParams, opts ...
 	return res, nil
 }
 
-// Agents
+// List agents
 func (r *AgentService) ListAutoPaging(ctx context.Context, query AgentListParams, opts ...option.RequestOption) *pagination.AgentsCursorPageAutoPager[AgentSummary] {
 	return pagination.NewAgentsCursorPageAutoPager(r.List(ctx, query, opts...))
 }
 
-// Agent
+// Delete agent
 func (r *AgentService) Delete(ctx context.Context, agentID string, opts ...option.RequestOption) (res *AgentDeleteResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -107,7 +107,7 @@ func (r *AgentService) Delete(ctx context.Context, agentID string, opts ...optio
 	return res, err
 }
 
-// Tools
+// List tools
 func (r *AgentService) ListTools(ctx context.Context, agentID string, opts ...option.RequestOption) (res *AgentListToolsResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -119,7 +119,7 @@ func (r *AgentService) ListTools(ctx context.Context, agentID string, opts ...op
 	return res, err
 }
 
-// Config
+// Retrieve config
 func (r *AgentService) GetConfig(ctx context.Context, agentID string, opts ...option.RequestOption) (res *EffectiveConfiguration, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -131,7 +131,7 @@ func (r *AgentService) GetConfig(ctx context.Context, agentID string, opts ...op
 	return res, err
 }
 
-// Metadata
+// Update metadata
 func (r *AgentService) UpdateMetadata(ctx context.Context, agentID string, body AgentUpdateMetadataParams, opts ...option.RequestOption) (res *Agent, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
