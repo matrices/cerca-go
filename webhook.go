@@ -37,6 +37,7 @@ func NewWebhookService(opts ...option.RequestOption) (r *WebhookService) {
 	return
 }
 
+// Webhooks
 func (r *WebhookService) New(ctx context.Context, fleetID string, body WebhookNewParams, opts ...option.RequestOption) (res *WebhookSubscriptionCreated, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if fleetID == "" {
@@ -48,6 +49,7 @@ func (r *WebhookService) New(ctx context.Context, fleetID string, body WebhookNe
 	return res, err
 }
 
+// Webhook
 func (r *WebhookService) Get(ctx context.Context, fleetID string, webhookID string, opts ...option.RequestOption) (res *WebhookSubscription, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if fleetID == "" {
@@ -63,6 +65,7 @@ func (r *WebhookService) Get(ctx context.Context, fleetID string, webhookID stri
 	return res, err
 }
 
+// Webhook
 func (r *WebhookService) Update(ctx context.Context, fleetID string, webhookID string, body WebhookUpdateParams, opts ...option.RequestOption) (res *WebhookSubscription, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if fleetID == "" {
@@ -78,6 +81,7 @@ func (r *WebhookService) Update(ctx context.Context, fleetID string, webhookID s
 	return res, err
 }
 
+// Webhooks
 func (r *WebhookService) List(ctx context.Context, fleetID string, query WebhookListParams, opts ...option.RequestOption) (res *pagination.SubscriptionsCursorPage[WebhookSubscription], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -99,10 +103,12 @@ func (r *WebhookService) List(ctx context.Context, fleetID string, query Webhook
 	return res, nil
 }
 
+// Webhooks
 func (r *WebhookService) ListAutoPaging(ctx context.Context, fleetID string, query WebhookListParams, opts ...option.RequestOption) *pagination.SubscriptionsCursorPageAutoPager[WebhookSubscription] {
 	return pagination.NewSubscriptionsCursorPageAutoPager(r.List(ctx, fleetID, query, opts...))
 }
 
+// Webhook
 func (r *WebhookService) Delete(ctx context.Context, fleetID string, webhookID string, opts ...option.RequestOption) (err error) {
 	opts = slices.Concat(r.Options, opts)
 	opts = append([]option.RequestOption{option.WithHeader("Accept", "*/*")}, opts...)
@@ -119,6 +125,7 @@ func (r *WebhookService) Delete(ctx context.Context, fleetID string, webhookID s
 	return err
 }
 
+// Rotate
 func (r *WebhookService) Rotate(ctx context.Context, fleetID string, webhookID string, opts ...option.RequestOption) (res *WebhookSubscriptionCreated, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if fleetID == "" {
@@ -134,6 +141,7 @@ func (r *WebhookService) Rotate(ctx context.Context, fleetID string, webhookID s
 	return res, err
 }
 
+// Test
 func (r *WebhookService) Test(ctx context.Context, fleetID string, webhookID string, opts ...option.RequestOption) (res *WebhookTestResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if fleetID == "" {

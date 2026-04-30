@@ -19,26 +19,27 @@ import (
 	"github.com/matrices/cerca-go/shared"
 )
 
-// ApprovalService contains methods and other services that help with interacting
-// with the cerca API.
+// ApprovalRequestService contains methods and other services that help with
+// interacting with the cerca API.
 //
 // Note, unlike clients, this service does not read variables from the environment
 // automatically. You should not instantiate this service directly, and instead use
-// the [NewApprovalService] method instead.
-type ApprovalService struct {
+// the [NewApprovalRequestService] method instead.
+type ApprovalRequestService struct {
 	Options []option.RequestOption
 }
 
-// NewApprovalService generates a new service that applies the given options to
-// each request. These options are applied after the parent client's options (if
+// NewApprovalRequestService generates a new service that applies the given options
+// to each request. These options are applied after the parent client's options (if
 // there is one), and before any request-specific options.
-func NewApprovalService(opts ...option.RequestOption) (r *ApprovalService) {
-	r = &ApprovalService{}
+func NewApprovalRequestService(opts ...option.RequestOption) (r *ApprovalRequestService) {
+	r = &ApprovalRequestService{}
 	r.Options = opts
 	return
 }
 
-func (r *ApprovalService) List(ctx context.Context, agentID string, query ApprovalListParams, opts ...option.RequestOption) (res *pagination.ApprovalsCursorPage[ApprovalRequest], err error) {
+// Approvals
+func (r *ApprovalRequestService) List(ctx context.Context, agentID string, query ApprovalRequestListParams, opts ...option.RequestOption) (res *pagination.ApprovalRequestsCursorPage[ApprovalRequest], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
 	opts = append([]option.RequestOption{option.WithResponseInto(&raw)}, opts...)
@@ -59,11 +60,13 @@ func (r *ApprovalService) List(ctx context.Context, agentID string, query Approv
 	return res, nil
 }
 
-func (r *ApprovalService) ListAutoPaging(ctx context.Context, agentID string, query ApprovalListParams, opts ...option.RequestOption) *pagination.ApprovalsCursorPageAutoPager[ApprovalRequest] {
-	return pagination.NewApprovalsCursorPageAutoPager(r.List(ctx, agentID, query, opts...))
+// Approvals
+func (r *ApprovalRequestService) ListAutoPaging(ctx context.Context, agentID string, query ApprovalRequestListParams, opts ...option.RequestOption) *pagination.ApprovalRequestsCursorPageAutoPager[ApprovalRequest] {
+	return pagination.NewApprovalRequestsCursorPageAutoPager(r.List(ctx, agentID, query, opts...))
 }
 
-func (r *ApprovalService) Resolve(ctx context.Context, agentID string, threadID string, approvalID string, body ApprovalResolveParams, opts ...option.RequestOption) (res *ApprovalRequest, err error) {
+// Approval
+func (r *ApprovalRequestService) Resolve(ctx context.Context, agentID string, threadID string, approvalID string, body ApprovalRequestResolveParams, opts ...option.RequestOption) (res *ApprovalRequest, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
 		err = errors.New("missing required agentId parameter")
@@ -83,17 +86,19 @@ func (r *ApprovalService) Resolve(ctx context.Context, agentID string, threadID 
 }
 
 type ApprovalRequest struct {
-	ID                string                `json:"id" api:"required"`
-	CreatedAt         string                `json:"createdAt" api:"required"`
-	RequestedToolName string                `json:"requestedToolName" api:"required"`
+	ID        string `json:"id" api:"required"`
+	CreatedAt string `json:"createdAt" api:"required"`
+	// Parsed JSON tool input from the original tool call. Generated SDKs may expose
+	// this as unknown or Any.
+	Input             interface{}           `json:"input" api:"required"`
 	ResolvedAt        string                `json:"resolvedAt" api:"required,nullable"`
+	RuntimeToolName   shared.ToolName       `json:"runtimeToolName" api:"required"`
 	Status            ApprovalRequestStatus `json:"status" api:"required"`
 	ThreadID          string                `json:"threadId" api:"required"`
 	TimeoutAt         string                `json:"timeoutAt" api:"required,nullable"`
 	TimeoutMs         float64               `json:"timeoutMs" api:"required,nullable"`
 	ToolIndex         float64               `json:"toolIndex" api:"required"`
-	ToolInput         string                `json:"toolInput" api:"required"`
-	ToolName          shared.ToolName       `json:"toolName" api:"required"`
+	ToolName          string                `json:"toolName" api:"required"`
 	ToolUseID         string                `json:"toolUseId" api:"required"`
 	TurnID            string                `json:"turnId" api:"required"`
 	ToolSourceID      string                `json:"toolSourceId"`
@@ -105,14 +110,14 @@ type ApprovalRequest struct {
 type approvalRequestJSON struct {
 	ID                apijson.Field
 	CreatedAt         apijson.Field
-	RequestedToolName apijson.Field
+	Input             apijson.Field
 	ResolvedAt        apijson.Field
+	RuntimeToolName   apijson.Field
 	Status            apijson.Field
 	ThreadID          apijson.Field
 	TimeoutAt         apijson.Field
 	TimeoutMs         apijson.Field
 	ToolIndex         apijson.Field
-	ToolInput         apijson.Field
 	ToolName          apijson.Field
 	ToolUseID         apijson.Field
 	TurnID            apijson.Field
@@ -148,7 +153,7 @@ func (r ApprovalRequestStatus) IsKnown() bool {
 	return false
 }
 
-type ApprovalListParams struct {
+type ApprovalRequestListParams struct {
 	// Opaque pagination cursor returned by a previous request.
 	Cursor param.Field[string] `query:"cursor"`
 	// Maximum number of items to return. Defaults to 20 and preserves parseInt
@@ -158,49 +163,50 @@ type ApprovalListParams struct {
 	ThreadID param.Field[string] `query:"threadId"`
 }
 
-// URLQuery serializes [ApprovalListParams]'s query parameters as `url.Values`.
-func (r ApprovalListParams) URLQuery() (v url.Values) {
+// URLQuery serializes [ApprovalRequestListParams]'s query parameters as
+// `url.Values`.
+func (r ApprovalRequestListParams) URLQuery() (v url.Values) {
 	return apiquery.MarshalWithSettings(r, apiquery.QuerySettings{
 		ArrayFormat:  apiquery.ArrayQueryFormatComma,
 		NestedFormat: apiquery.NestedQueryFormatBrackets,
 	})
 }
 
-type ApprovalResolveParams struct {
-	Decision param.Field[ApprovalResolveParamsDecision] `json:"decision" api:"required"`
-	Grant    param.Field[ApprovalResolveParamsGrant]    `json:"grant"`
+type ApprovalRequestResolveParams struct {
+	Decision param.Field[ApprovalRequestResolveParamsDecision] `json:"decision" api:"required"`
+	Grant    param.Field[ApprovalRequestResolveParamsGrant]    `json:"grant"`
 }
 
-func (r ApprovalResolveParams) MarshalJSON() (data []byte, err error) {
+func (r ApprovalRequestResolveParams) MarshalJSON() (data []byte, err error) {
 	return apijson.MarshalRoot(r)
 }
 
-type ApprovalResolveParamsDecision string
+type ApprovalRequestResolveParamsDecision string
 
 const (
-	ApprovalResolveParamsDecisionApprove ApprovalResolveParamsDecision = "approve"
-	ApprovalResolveParamsDecisionDeny    ApprovalResolveParamsDecision = "deny"
-	ApprovalResolveParamsDecisionCancel  ApprovalResolveParamsDecision = "cancel"
+	ApprovalRequestResolveParamsDecisionApprove ApprovalRequestResolveParamsDecision = "approve"
+	ApprovalRequestResolveParamsDecisionDeny    ApprovalRequestResolveParamsDecision = "deny"
+	ApprovalRequestResolveParamsDecisionCancel  ApprovalRequestResolveParamsDecision = "cancel"
 )
 
-func (r ApprovalResolveParamsDecision) IsKnown() bool {
+func (r ApprovalRequestResolveParamsDecision) IsKnown() bool {
 	switch r {
-	case ApprovalResolveParamsDecisionApprove, ApprovalResolveParamsDecisionDeny, ApprovalResolveParamsDecisionCancel:
+	case ApprovalRequestResolveParamsDecisionApprove, ApprovalRequestResolveParamsDecisionDeny, ApprovalRequestResolveParamsDecisionCancel:
 		return true
 	}
 	return false
 }
 
-type ApprovalResolveParamsGrant string
+type ApprovalRequestResolveParamsGrant string
 
 const (
-	ApprovalResolveParamsGrantThread ApprovalResolveParamsGrant = "thread"
-	ApprovalResolveParamsGrantAgent  ApprovalResolveParamsGrant = "agent"
+	ApprovalRequestResolveParamsGrantThread ApprovalRequestResolveParamsGrant = "thread"
+	ApprovalRequestResolveParamsGrantAgent  ApprovalRequestResolveParamsGrant = "agent"
 )
 
-func (r ApprovalResolveParamsGrant) IsKnown() bool {
+func (r ApprovalRequestResolveParamsGrant) IsKnown() bool {
 	switch r {
-	case ApprovalResolveParamsGrantThread, ApprovalResolveParamsGrantAgent:
+	case ApprovalRequestResolveParamsGrantThread, ApprovalRequestResolveParamsGrantAgent:
 		return true
 	}
 	return false

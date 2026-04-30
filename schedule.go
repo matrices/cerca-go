@@ -36,7 +36,8 @@ func NewScheduleService(opts ...option.RequestOption) (r *ScheduleService) {
 	return
 }
 
-func (r *ScheduleService) New(ctx context.Context, agentID string, body ScheduleNewParams, opts ...option.RequestOption) (res *ScheduledThread, err error) {
+// Schedules
+func (r *ScheduleService) New(ctx context.Context, agentID string, body ScheduleNewParams, opts ...option.RequestOption) (res *Schedule, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
 		err = errors.New("missing required agentId parameter")
@@ -47,7 +48,8 @@ func (r *ScheduleService) New(ctx context.Context, agentID string, body Schedule
 	return res, err
 }
 
-func (r *ScheduleService) Update(ctx context.Context, agentID string, scheduleID string, body ScheduleUpdateParams, opts ...option.RequestOption) (res *ScheduledThread, err error) {
+// Schedule
+func (r *ScheduleService) Update(ctx context.Context, agentID string, scheduleID string, body ScheduleUpdateParams, opts ...option.RequestOption) (res *Schedule, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
 		err = errors.New("missing required agentId parameter")
@@ -62,6 +64,7 @@ func (r *ScheduleService) Update(ctx context.Context, agentID string, scheduleID
 	return res, err
 }
 
+// Schedules
 func (r *ScheduleService) List(ctx context.Context, agentID string, opts ...option.RequestOption) (res *ScheduleListResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -73,6 +76,7 @@ func (r *ScheduleService) List(ctx context.Context, agentID string, opts ...opti
 	return res, err
 }
 
+// Schedule
 func (r *ScheduleService) Delete(ctx context.Context, agentID string, scheduleID string, opts ...option.RequestOption) (res *ScheduleDeleteResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -88,6 +92,7 @@ func (r *ScheduleService) Delete(ctx context.Context, agentID string, scheduleID
 	return res, err
 }
 
+// Trigger
 func (r *ScheduleService) Trigger(ctx context.Context, agentID string, scheduleID string, opts ...option.RequestOption) (res *ScheduleTriggerResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -103,31 +108,33 @@ func (r *ScheduleService) Trigger(ctx context.Context, agentID string, scheduleI
 	return res, err
 }
 
-type ScheduledThread struct {
-	ID           string              `json:"id" api:"required"`
-	CreatedAt    string              `json:"createdAt" api:"required"`
-	Enabled      bool                `json:"enabled" api:"required"`
-	Name         string              `json:"name" api:"required"`
-	NextAt       string              `json:"nextAt" api:"required,nullable"`
-	Prompt       string              `json:"prompt" api:"required"`
-	Timezone     string              `json:"timezone" api:"required"`
-	UpdatedAt    string              `json:"updatedAt" api:"required"`
-	Cron         string              `json:"cron"`
-	Instructions string              `json:"instructions"`
-	Model        string              `json:"model"`
-	RunAt        time.Time           `json:"runAt" format:"date-time"`
-	Tools        []shared.ToolSpec   `json:"tools"`
-	JSON         scheduledThreadJSON `json:"-"`
+type Schedule struct {
+	ID           string    `json:"id" api:"required"`
+	CreatedAt    string    `json:"createdAt" api:"required"`
+	Enabled      bool      `json:"enabled" api:"required"`
+	Message      string    `json:"message" api:"required"`
+	Name         string    `json:"name" api:"required"`
+	NextAt       string    `json:"nextAt" api:"required,nullable"`
+	Timezone     string    `json:"timezone" api:"required"`
+	UpdatedAt    string    `json:"updatedAt" api:"required"`
+	Cron         string    `json:"cron"`
+	Instructions string    `json:"instructions"`
+	Model        string    `json:"model"`
+	RunAt        time.Time `json:"runAt" format:"date-time"`
+	// Per-schedule tool subset. Scheduled threads inherit the agent's effective tools
+	// when omitted and can only narrow them when provided.
+	Tools []shared.ToolSpec `json:"tools"`
+	JSON  scheduleJSON      `json:"-"`
 }
 
-// scheduledThreadJSON contains the JSON metadata for the struct [ScheduledThread]
-type scheduledThreadJSON struct {
+// scheduleJSON contains the JSON metadata for the struct [Schedule]
+type scheduleJSON struct {
 	ID           apijson.Field
 	CreatedAt    apijson.Field
 	Enabled      apijson.Field
+	Message      apijson.Field
 	Name         apijson.Field
 	NextAt       apijson.Field
-	Prompt       apijson.Field
 	Timezone     apijson.Field
 	UpdatedAt    apijson.Field
 	Cron         apijson.Field
@@ -139,16 +146,16 @@ type scheduledThreadJSON struct {
 	ExtraFields  map[string]apijson.Field
 }
 
-func (r *ScheduledThread) UnmarshalJSON(data []byte) (err error) {
+func (r *Schedule) UnmarshalJSON(data []byte) (err error) {
 	return apijson.UnmarshalRoot(data, r)
 }
 
-func (r scheduledThreadJSON) RawJSON() string {
+func (r scheduleJSON) RawJSON() string {
 	return r.raw
 }
 
 type ScheduleListResponse struct {
-	Schedules []ScheduledThread        `json:"schedules" api:"required"`
+	Schedules []Schedule               `json:"schedules" api:"required"`
 	JSON      scheduleListResponseJSON `json:"-"`
 }
 
@@ -225,14 +232,16 @@ func (r scheduleTriggerResponseJSON) RawJSON() string {
 }
 
 type ScheduleNewParams struct {
-	Name         param.Field[string]                 `json:"name" api:"required"`
-	Prompt       param.Field[string]                 `json:"prompt" api:"required"`
-	Cron         param.Field[string]                 `json:"cron"`
-	Instructions param.Field[string]                 `json:"instructions"`
-	Model        param.Field[string]                 `json:"model"`
-	RunAt        param.Field[time.Time]              `json:"runAt" format:"date-time"`
-	Timezone     param.Field[string]                 `json:"timezone"`
-	Tools        param.Field[[]shared.ToolSpecParam] `json:"tools"`
+	Message      param.Field[string]    `json:"message" api:"required"`
+	Name         param.Field[string]    `json:"name" api:"required"`
+	Cron         param.Field[string]    `json:"cron"`
+	Instructions param.Field[string]    `json:"instructions"`
+	Model        param.Field[string]    `json:"model"`
+	RunAt        param.Field[time.Time] `json:"runAt" format:"date-time"`
+	Timezone     param.Field[string]    `json:"timezone"`
+	// Per-schedule tool subset. When the schedule starts a thread, these tools can
+	// only narrow the agent's effective tools.
+	Tools param.Field[[]shared.ToolSpecParam] `json:"tools"`
 }
 
 func (r ScheduleNewParams) MarshalJSON() (data []byte, err error) {
@@ -240,15 +249,17 @@ func (r ScheduleNewParams) MarshalJSON() (data []byte, err error) {
 }
 
 type ScheduleUpdateParams struct {
-	Cron         param.Field[string]                 `json:"cron"`
-	Enabled      param.Field[bool]                   `json:"enabled"`
-	Instructions param.Field[string]                 `json:"instructions"`
-	Model        param.Field[string]                 `json:"model"`
-	Name         param.Field[string]                 `json:"name"`
-	Prompt       param.Field[string]                 `json:"prompt"`
-	RunAt        param.Field[time.Time]              `json:"runAt" format:"date-time"`
-	Timezone     param.Field[string]                 `json:"timezone"`
-	Tools        param.Field[[]shared.ToolSpecParam] `json:"tools"`
+	Cron         param.Field[string]    `json:"cron"`
+	Enabled      param.Field[bool]      `json:"enabled"`
+	Instructions param.Field[string]    `json:"instructions"`
+	Message      param.Field[string]    `json:"message"`
+	Model        param.Field[string]    `json:"model"`
+	Name         param.Field[string]    `json:"name"`
+	RunAt        param.Field[time.Time] `json:"runAt" format:"date-time"`
+	Timezone     param.Field[string]    `json:"timezone"`
+	// Per-schedule tool subset. When updated, these tools can only narrow the agent's
+	// effective tools for future scheduled threads.
+	Tools param.Field[[]shared.ToolSpecParam] `json:"tools"`
 }
 
 func (r ScheduleUpdateParams) MarshalJSON() (data []byte, err error) {

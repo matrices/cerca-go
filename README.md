@@ -56,7 +56,7 @@ func main() {
 		context.TODO(),
 		"agent_abc123",
 		cercago.ThreadNewParams{
-			UserMessage: cercago.F("What's on my calendar today?"),
+			Message: cercago.F("What's on my calendar today?"),
 		},
 	)
 	if err != nil {

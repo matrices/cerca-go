@@ -31,6 +31,7 @@ func NewModelService(opts ...option.RequestOption) (r *ModelService) {
 	return
 }
 
+// Models
 func (r *ModelService) List(ctx context.Context, opts ...option.RequestOption) (res *ModelListResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	path := "models"
