@@ -40,6 +40,7 @@ func NewThreadService(opts ...option.RequestOption) (r *ThreadService) {
 	return
 }
 
+// Threads
 func (r *ThreadService) New(ctx context.Context, agentID string, body ThreadNewParams, opts ...option.RequestOption) (res *Thread, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -51,6 +52,7 @@ func (r *ThreadService) New(ctx context.Context, agentID string, body ThreadNewP
 	return res, err
 }
 
+// Thread
 func (r *ThreadService) Get(ctx context.Context, agentID string, threadID string, query ThreadGetParams, opts ...option.RequestOption) (res *Thread, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -66,6 +68,7 @@ func (r *ThreadService) Get(ctx context.Context, agentID string, threadID string
 	return res, err
 }
 
+// Threads
 func (r *ThreadService) List(ctx context.Context, agentID string, query ThreadListParams, opts ...option.RequestOption) (res *pagination.ThreadsCursorPage[ThreadSummary], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -87,6 +90,7 @@ func (r *ThreadService) List(ctx context.Context, agentID string, query ThreadLi
 	return res, nil
 }
 
+// Threads
 func (r *ThreadService) ListAutoPaging(ctx context.Context, agentID string, query ThreadListParams, opts ...option.RequestOption) *pagination.ThreadsCursorPageAutoPager[ThreadSummary] {
 	return pagination.NewThreadsCursorPageAutoPager(r.List(ctx, agentID, query, opts...))
 }
@@ -142,6 +146,7 @@ func (r *ThreadService) Compact(ctx context.Context, agentID string, threadID st
 	return res, err
 }
 
+// Turns
 func (r *ThreadService) StartTurn(ctx context.Context, agentID string, threadID string, body ThreadStartTurnParams, opts ...option.RequestOption) (res *Turn, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -198,49 +203,345 @@ func (r compiledContextJSON) RawJSON() string {
 	return r.raw
 }
 
-type ContentBlock map[string]interface{}
-
-type ContextWindow struct {
-	Compacted            bool                          `json:"compacted" api:"required"`
-	CompactionThroughSeq float64                       `json:"compactionThroughSeq" api:"required,nullable"`
-	ContextWindowTokens  float64                       `json:"contextWindowTokens" api:"required"`
-	EstimationMethod     ContextWindowEstimationMethod `json:"estimationMethod" api:"required"`
-	LlmEstimatedTokens   float64                       `json:"llmEstimatedTokens" api:"required"`
-	Model                string                        `json:"model" api:"required"`
-	RawEstimatedTokens   float64                       `json:"rawEstimatedTokens" api:"required"`
-	JSON                 contextWindowJSON             `json:"-"`
+// Message content block. The `type` field distinguishes text, tool use, tool
+// result, server tool use, and web search result blocks.
+type ContentBlock struct {
+	Type ContentBlockType `json:"type" api:"required"`
+	ID   string           `json:"id"`
+	// This field can have the runtime type of [string], [interface{}].
+	Content      interface{} `json:"content"`
+	DeniedByUser bool        `json:"deniedByUser"`
+	// This field can have the runtime type of [interface{}].
+	Input   interface{}     `json:"input"`
+	IsError bool            `json:"isError"`
+	Name    shared.ToolName `json:"name"`
+	// This field can have the runtime type of [map[string]map[string]string].
+	ProviderMetadata interface{}      `json:"providerMetadata"`
+	Text             string           `json:"text"`
+	ToolUseID        string           `json:"toolUseId"`
+	JSON             contentBlockJSON `json:"-"`
+	union            ContentBlockUnion
 }
 
-// contextWindowJSON contains the JSON metadata for the struct [ContextWindow]
-type contextWindowJSON struct {
-	Compacted            apijson.Field
-	CompactionThroughSeq apijson.Field
-	ContextWindowTokens  apijson.Field
-	EstimationMethod     apijson.Field
-	LlmEstimatedTokens   apijson.Field
-	Model                apijson.Field
-	RawEstimatedTokens   apijson.Field
-	raw                  string
-	ExtraFields          map[string]apijson.Field
+// contentBlockJSON contains the JSON metadata for the struct [ContentBlock]
+type contentBlockJSON struct {
+	Type             apijson.Field
+	ID               apijson.Field
+	Content          apijson.Field
+	DeniedByUser     apijson.Field
+	Input            apijson.Field
+	IsError          apijson.Field
+	Name             apijson.Field
+	ProviderMetadata apijson.Field
+	Text             apijson.Field
+	ToolUseID        apijson.Field
+	raw              string
+	ExtraFields      map[string]apijson.Field
 }
 
-func (r *ContextWindow) UnmarshalJSON(data []byte) (err error) {
-	return apijson.UnmarshalRoot(data, r)
-}
-
-func (r contextWindowJSON) RawJSON() string {
+func (r contentBlockJSON) RawJSON() string {
 	return r.raw
 }
 
-type ContextWindowEstimationMethod string
+func (r *ContentBlock) UnmarshalJSON(data []byte) (err error) {
+	*r = ContentBlock{}
+	err = apijson.UnmarshalRoot(data, &r.union)
+	if err != nil {
+		return err
+	}
+	return apijson.Port(r.union, &r)
+}
+
+// AsUnion returns a [ContentBlockUnion] interface which you can cast to the
+// specific types for more type safety.
+//
+// Possible runtime types of the union are [ContentBlockTextContentBlock],
+// [ContentBlockToolUseContentBlock], [ContentBlockToolResultContentBlock],
+// [ContentBlockServerToolUseContentBlock],
+// [ContentBlockWebSearchToolResultContentBlock].
+func (r ContentBlock) AsUnion() ContentBlockUnion {
+	return r.union
+}
+
+// Message content block. The `type` field distinguishes text, tool use, tool
+// result, server tool use, and web search result blocks.
+//
+// Union satisfied by [ContentBlockTextContentBlock],
+// [ContentBlockToolUseContentBlock], [ContentBlockToolResultContentBlock],
+// [ContentBlockServerToolUseContentBlock] or
+// [ContentBlockWebSearchToolResultContentBlock].
+type ContentBlockUnion interface {
+	implementsContentBlock()
+}
+
+func init() {
+	apijson.RegisterUnion(
+		reflect.TypeOf((*ContentBlockUnion)(nil)).Elem(),
+		"type",
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ContentBlockTextContentBlock{}),
+			DiscriminatorValue: "text",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ContentBlockToolUseContentBlock{}),
+			DiscriminatorValue: "tool_use",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ContentBlockToolResultContentBlock{}),
+			DiscriminatorValue: "tool_result",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ContentBlockServerToolUseContentBlock{}),
+			DiscriminatorValue: "server_tool_use",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ContentBlockWebSearchToolResultContentBlock{}),
+			DiscriminatorValue: "web_search_tool_result",
+		},
+	)
+}
+
+type ContentBlockTextContentBlock struct {
+	Text             string                           `json:"text" api:"required"`
+	Type             ContentBlockTextContentBlockType `json:"type" api:"required"`
+	ProviderMetadata map[string]map[string]string     `json:"providerMetadata"`
+	JSON             contentBlockTextContentBlockJSON `json:"-"`
+}
+
+// contentBlockTextContentBlockJSON contains the JSON metadata for the struct
+// [ContentBlockTextContentBlock]
+type contentBlockTextContentBlockJSON struct {
+	Text             apijson.Field
+	Type             apijson.Field
+	ProviderMetadata apijson.Field
+	raw              string
+	ExtraFields      map[string]apijson.Field
+}
+
+func (r *ContentBlockTextContentBlock) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r contentBlockTextContentBlockJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ContentBlockTextContentBlock) implementsContentBlock() {}
+
+type ContentBlockTextContentBlockType string
 
 const (
-	ContextWindowEstimationMethodHeuristicRequestV1 ContextWindowEstimationMethod = "heuristic_request_v1"
+	ContentBlockTextContentBlockTypeText ContentBlockTextContentBlockType = "text"
 )
 
-func (r ContextWindowEstimationMethod) IsKnown() bool {
+func (r ContentBlockTextContentBlockType) IsKnown() bool {
 	switch r {
-	case ContextWindowEstimationMethodHeuristicRequestV1:
+	case ContentBlockTextContentBlockTypeText:
+		return true
+	}
+	return false
+}
+
+type ContentBlockToolUseContentBlock struct {
+	ID string `json:"id" api:"required"`
+	// Any JSON value. Generated SDKs may expose this value boundary as unknown or Any.
+	Input            interface{}                         `json:"input" api:"required"`
+	Name             shared.ToolName                     `json:"name" api:"required"`
+	Type             ContentBlockToolUseContentBlockType `json:"type" api:"required"`
+	ProviderMetadata map[string]map[string]string        `json:"providerMetadata"`
+	JSON             contentBlockToolUseContentBlockJSON `json:"-"`
+}
+
+// contentBlockToolUseContentBlockJSON contains the JSON metadata for the struct
+// [ContentBlockToolUseContentBlock]
+type contentBlockToolUseContentBlockJSON struct {
+	ID               apijson.Field
+	Input            apijson.Field
+	Name             apijson.Field
+	Type             apijson.Field
+	ProviderMetadata apijson.Field
+	raw              string
+	ExtraFields      map[string]apijson.Field
+}
+
+func (r *ContentBlockToolUseContentBlock) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r contentBlockToolUseContentBlockJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ContentBlockToolUseContentBlock) implementsContentBlock() {}
+
+type ContentBlockToolUseContentBlockType string
+
+const (
+	ContentBlockToolUseContentBlockTypeToolUse ContentBlockToolUseContentBlockType = "tool_use"
+)
+
+func (r ContentBlockToolUseContentBlockType) IsKnown() bool {
+	switch r {
+	case ContentBlockToolUseContentBlockTypeToolUse:
+		return true
+	}
+	return false
+}
+
+type ContentBlockToolResultContentBlock struct {
+	Content          string                                 `json:"content" api:"required"`
+	IsError          bool                                   `json:"isError" api:"required"`
+	ToolUseID        string                                 `json:"toolUseId" api:"required"`
+	Type             ContentBlockToolResultContentBlockType `json:"type" api:"required"`
+	DeniedByUser     bool                                   `json:"deniedByUser"`
+	ProviderMetadata map[string]map[string]string           `json:"providerMetadata"`
+	JSON             contentBlockToolResultContentBlockJSON `json:"-"`
+}
+
+// contentBlockToolResultContentBlockJSON contains the JSON metadata for the struct
+// [ContentBlockToolResultContentBlock]
+type contentBlockToolResultContentBlockJSON struct {
+	Content          apijson.Field
+	IsError          apijson.Field
+	ToolUseID        apijson.Field
+	Type             apijson.Field
+	DeniedByUser     apijson.Field
+	ProviderMetadata apijson.Field
+	raw              string
+	ExtraFields      map[string]apijson.Field
+}
+
+func (r *ContentBlockToolResultContentBlock) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r contentBlockToolResultContentBlockJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ContentBlockToolResultContentBlock) implementsContentBlock() {}
+
+type ContentBlockToolResultContentBlockType string
+
+const (
+	ContentBlockToolResultContentBlockTypeToolResult ContentBlockToolResultContentBlockType = "tool_result"
+)
+
+func (r ContentBlockToolResultContentBlockType) IsKnown() bool {
+	switch r {
+	case ContentBlockToolResultContentBlockTypeToolResult:
+		return true
+	}
+	return false
+}
+
+type ContentBlockServerToolUseContentBlock struct {
+	ID string `json:"id" api:"required"`
+	// Any JSON value. Generated SDKs may expose this value boundary as unknown or Any.
+	Input            interface{}                               `json:"input" api:"required"`
+	Name             string                                    `json:"name" api:"required"`
+	Type             ContentBlockServerToolUseContentBlockType `json:"type" api:"required"`
+	ProviderMetadata map[string]map[string]string              `json:"providerMetadata"`
+	JSON             contentBlockServerToolUseContentBlockJSON `json:"-"`
+}
+
+// contentBlockServerToolUseContentBlockJSON contains the JSON metadata for the
+// struct [ContentBlockServerToolUseContentBlock]
+type contentBlockServerToolUseContentBlockJSON struct {
+	ID               apijson.Field
+	Input            apijson.Field
+	Name             apijson.Field
+	Type             apijson.Field
+	ProviderMetadata apijson.Field
+	raw              string
+	ExtraFields      map[string]apijson.Field
+}
+
+func (r *ContentBlockServerToolUseContentBlock) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r contentBlockServerToolUseContentBlockJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ContentBlockServerToolUseContentBlock) implementsContentBlock() {}
+
+type ContentBlockServerToolUseContentBlockType string
+
+const (
+	ContentBlockServerToolUseContentBlockTypeServerToolUse ContentBlockServerToolUseContentBlockType = "server_tool_use"
+)
+
+func (r ContentBlockServerToolUseContentBlockType) IsKnown() bool {
+	switch r {
+	case ContentBlockServerToolUseContentBlockTypeServerToolUse:
+		return true
+	}
+	return false
+}
+
+type ContentBlockWebSearchToolResultContentBlock struct {
+	// Web search result payload. The runtime returns either an array of web search
+	// results or an error object.
+	Content   interface{}                                     `json:"content" api:"required"`
+	ToolUseID string                                          `json:"toolUseId" api:"required"`
+	Type      ContentBlockWebSearchToolResultContentBlockType `json:"type" api:"required"`
+	JSON      contentBlockWebSearchToolResultContentBlockJSON `json:"-"`
+}
+
+// contentBlockWebSearchToolResultContentBlockJSON contains the JSON metadata for
+// the struct [ContentBlockWebSearchToolResultContentBlock]
+type contentBlockWebSearchToolResultContentBlockJSON struct {
+	Content     apijson.Field
+	ToolUseID   apijson.Field
+	Type        apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *ContentBlockWebSearchToolResultContentBlock) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r contentBlockWebSearchToolResultContentBlockJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ContentBlockWebSearchToolResultContentBlock) implementsContentBlock() {}
+
+type ContentBlockWebSearchToolResultContentBlockType string
+
+const (
+	ContentBlockWebSearchToolResultContentBlockTypeWebSearchToolResult ContentBlockWebSearchToolResultContentBlockType = "web_search_tool_result"
+)
+
+func (r ContentBlockWebSearchToolResultContentBlockType) IsKnown() bool {
+	switch r {
+	case ContentBlockWebSearchToolResultContentBlockTypeWebSearchToolResult:
+		return true
+	}
+	return false
+}
+
+type ContentBlockType string
+
+const (
+	ContentBlockTypeText                ContentBlockType = "text"
+	ContentBlockTypeToolUse             ContentBlockType = "tool_use"
+	ContentBlockTypeToolResult          ContentBlockType = "tool_result"
+	ContentBlockTypeServerToolUse       ContentBlockType = "server_tool_use"
+	ContentBlockTypeWebSearchToolResult ContentBlockType = "web_search_tool_result"
+)
+
+func (r ContentBlockType) IsKnown() bool {
+	switch r {
+	case ContentBlockTypeText, ContentBlockTypeToolUse, ContentBlockTypeToolResult, ContentBlockTypeServerToolUse, ContentBlockTypeWebSearchToolResult:
 		return true
 	}
 	return false
@@ -285,29 +586,6 @@ func (r MessageRole) IsKnown() bool {
 		return true
 	}
 	return false
-}
-
-type PendingSubThread struct {
-	SubThreadID string               `json:"subThreadId" api:"required"`
-	ToolUseID   string               `json:"toolUseId" api:"required"`
-	JSON        pendingSubThreadJSON `json:"-"`
-}
-
-// pendingSubThreadJSON contains the JSON metadata for the struct
-// [PendingSubThread]
-type pendingSubThreadJSON struct {
-	SubThreadID apijson.Field
-	ToolUseID   apijson.Field
-	raw         string
-	ExtraFields map[string]apijson.Field
-}
-
-func (r *PendingSubThread) UnmarshalJSON(data []byte) (err error) {
-	return apijson.UnmarshalRoot(data, r)
-}
-
-func (r pendingSubThreadJSON) RawJSON() string {
-	return r.raw
 }
 
 // `idle` threads can accept a new turn or be closed. `running` threads have an
@@ -372,39 +650,96 @@ func (r SteerResultStatus) IsKnown() bool {
 	return false
 }
 
+type SubThreadSummary struct {
+	ID             string  `json:"id" api:"required"`
+	CompletedAt    string  `json:"completedAt" api:"required,nullable"`
+	CreatedAt      string  `json:"createdAt" api:"required"`
+	MessageCount   float64 `json:"messageCount" api:"required"`
+	Model          string  `json:"model" api:"required"`
+	ParentThreadID string  `json:"parentThreadId" api:"required,nullable"`
+	Result         string  `json:"result" api:"required,nullable"`
+	ScheduleID     string  `json:"scheduleId" api:"required,nullable"`
+	ScheduleSeq    float64 `json:"scheduleSeq" api:"required,nullable"`
+	// `pending` means the parent thread is still waiting on this sub-thread. Other
+	// values are the child thread lifecycle state.
+	State     SubThreadSummaryState `json:"state" api:"required"`
+	StepCount float64               `json:"stepCount" api:"required"`
+	ToolUseID string                `json:"toolUseId" api:"required,nullable"`
+	JSON      subThreadSummaryJSON  `json:"-"`
+}
+
+// subThreadSummaryJSON contains the JSON metadata for the struct
+// [SubThreadSummary]
+type subThreadSummaryJSON struct {
+	ID             apijson.Field
+	CompletedAt    apijson.Field
+	CreatedAt      apijson.Field
+	MessageCount   apijson.Field
+	Model          apijson.Field
+	ParentThreadID apijson.Field
+	Result         apijson.Field
+	ScheduleID     apijson.Field
+	ScheduleSeq    apijson.Field
+	State          apijson.Field
+	StepCount      apijson.Field
+	ToolUseID      apijson.Field
+	raw            string
+	ExtraFields    map[string]apijson.Field
+}
+
+func (r *SubThreadSummary) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r subThreadSummaryJSON) RawJSON() string {
+	return r.raw
+}
+
+// `pending` means the parent thread is still waiting on this sub-thread. Other
+// values are the child thread lifecycle state.
+type SubThreadSummaryState string
+
+const (
+	SubThreadSummaryStatePending  SubThreadSummaryState = "pending"
+	SubThreadSummaryStateIdle     SubThreadSummaryState = "idle"
+	SubThreadSummaryStateRunning  SubThreadSummaryState = "running"
+	SubThreadSummaryStateAwaiting SubThreadSummaryState = "awaiting"
+	SubThreadSummaryStateClosed   SubThreadSummaryState = "closed"
+)
+
+func (r SubThreadSummaryState) IsKnown() bool {
+	switch r {
+	case SubThreadSummaryStatePending, SubThreadSummaryStateIdle, SubThreadSummaryStateRunning, SubThreadSummaryStateAwaiting, SubThreadSummaryStateClosed:
+		return true
+	}
+	return false
+}
+
 type Thread struct {
-	ID                   string               `json:"id" api:"required"`
-	AgentID              string               `json:"agentId" api:"required"`
-	CompactionSummary    string               `json:"compactionSummary" api:"required,nullable"`
-	CompactionThroughSeq float64              `json:"compactionThroughSeq" api:"required,nullable"`
-	CompiledContext      CompiledContext      `json:"compiledContext" api:"required,nullable"`
-	CompletedAt          string               `json:"completedAt" api:"required,nullable"`
-	ComposedSystemPrompt string               `json:"composedSystemPrompt" api:"required,nullable"`
-	ContextWindow        ContextWindow        `json:"contextWindow" api:"required,nullable"`
-	CreatedAt            string               `json:"createdAt" api:"required"`
-	Depth                float64              `json:"depth" api:"required"`
-	Error                string               `json:"error" api:"required,nullable"`
-	HasMoreMessages      bool                 `json:"hasMoreMessages" api:"required"`
-	Instructions         string               `json:"instructions" api:"required,nullable"`
-	LastTurnStatus       ThreadLastTurnStatus `json:"lastTurnStatus" api:"required,nullable"`
-	MessageCursor        float64              `json:"messageCursor" api:"required,nullable"`
-	Messages             []Message            `json:"messages" api:"required"`
-	Model                string               `json:"model" api:"required"`
-	ParentThreadID       string               `json:"parentThreadId" api:"required,nullable"`
-	PendingSubThreads    []PendingSubThread   `json:"pendingSubThreads" api:"required"`
-	Result               string               `json:"result" api:"required,nullable"`
-	ScheduleID           string               `json:"scheduleId" api:"required,nullable"`
-	ScheduleSeq          float64              `json:"scheduleSeq" api:"required,nullable"`
+	ID              string               `json:"id" api:"required"`
+	AgentID         string               `json:"agentId" api:"required"`
+	CompiledContext CompiledContext      `json:"compiledContext" api:"required,nullable"`
+	CompletedAt     string               `json:"completedAt" api:"required,nullable"`
+	CreatedAt       string               `json:"createdAt" api:"required"`
+	Depth           float64              `json:"depth" api:"required"`
+	Error           string               `json:"error" api:"required,nullable"`
+	Instructions    string               `json:"instructions" api:"required,nullable"`
+	LastTurnStatus  ThreadLastTurnStatus `json:"lastTurnStatus" api:"required,nullable"`
+	Message         string               `json:"message" api:"required"`
+	Messages        []Message            `json:"messages" api:"required"`
+	Model           string               `json:"model" api:"required"`
+	ParentThreadID  string               `json:"parentThreadId" api:"required,nullable"`
+	Result          string               `json:"result" api:"required,nullable"`
+	ScheduleID      string               `json:"scheduleId" api:"required,nullable"`
+	ScheduleSeq     float64              `json:"scheduleSeq" api:"required,nullable"`
 	// `idle` threads can accept a new turn or be closed. `running` threads have an
 	// active turn. `awaiting` threads are paused on external input such as approvals.
 	// `closed` threads are terminal.
 	Status                 Status                            `json:"status" api:"required"`
-	SubThreads             []ThreadSummary                   `json:"subThreads" api:"required"`
+	SubThreads             []SubThreadSummary                `json:"subThreads" api:"required"`
 	Tools                  []shared.ToolName                 `json:"tools" api:"required"`
 	Turns                  []Turn                            `json:"turns" api:"required"`
 	UpdatedAt              string                            `json:"updatedAt" api:"required"`
-	UserMessage            string                            `json:"userMessage" api:"required"`
-	ActiveTurnModel        string                            `json:"activeTurnModel" api:"nullable"`
 	ExternalToolNamespaces ThreadExternalToolNamespacesUnion `json:"externalToolNamespaces"`
 	JSON                   threadJSON                        `json:"-"`
 }
@@ -413,23 +748,17 @@ type Thread struct {
 type threadJSON struct {
 	ID                     apijson.Field
 	AgentID                apijson.Field
-	CompactionSummary      apijson.Field
-	CompactionThroughSeq   apijson.Field
 	CompiledContext        apijson.Field
 	CompletedAt            apijson.Field
-	ComposedSystemPrompt   apijson.Field
-	ContextWindow          apijson.Field
 	CreatedAt              apijson.Field
 	Depth                  apijson.Field
 	Error                  apijson.Field
-	HasMoreMessages        apijson.Field
 	Instructions           apijson.Field
 	LastTurnStatus         apijson.Field
-	MessageCursor          apijson.Field
+	Message                apijson.Field
 	Messages               apijson.Field
 	Model                  apijson.Field
 	ParentThreadID         apijson.Field
-	PendingSubThreads      apijson.Field
 	Result                 apijson.Field
 	ScheduleID             apijson.Field
 	ScheduleSeq            apijson.Field
@@ -438,8 +767,6 @@ type threadJSON struct {
 	Tools                  apijson.Field
 	Turns                  apijson.Field
 	UpdatedAt              apijson.Field
-	UserMessage            apijson.Field
-	ActiveTurnModel        apijson.Field
 	ExternalToolNamespaces apijson.Field
 	raw                    string
 	ExtraFields            map[string]apijson.Field
@@ -579,6 +906,7 @@ type Turn struct {
 	CompletedAt     string     `json:"completedAt" api:"required,nullable"`
 	EndMessageSeq   float64    `json:"endMessageSeq" api:"required,nullable"`
 	Error           string     `json:"error" api:"required,nullable"`
+	Message         string     `json:"message" api:"required"`
 	Result          string     `json:"result" api:"required,nullable"`
 	Seq             float64    `json:"seq" api:"required"`
 	StartedAt       string     `json:"startedAt" api:"required"`
@@ -586,7 +914,6 @@ type Turn struct {
 	Status          TurnStatus `json:"status" api:"required"`
 	ThreadID        string     `json:"threadId" api:"required"`
 	TokenUsage      TokenUsage `json:"tokenUsage" api:"required,nullable"`
-	UserMessage     string     `json:"userMessage" api:"required"`
 	JSON            turnJSON   `json:"-"`
 }
 
@@ -596,6 +923,7 @@ type turnJSON struct {
 	CompletedAt     apijson.Field
 	EndMessageSeq   apijson.Field
 	Error           apijson.Field
+	Message         apijson.Field
 	Result          apijson.Field
 	Seq             apijson.Field
 	StartedAt       apijson.Field
@@ -603,7 +931,6 @@ type turnJSON struct {
 	Status          apijson.Field
 	ThreadID        apijson.Field
 	TokenUsage      apijson.Field
-	UserMessage     apijson.Field
 	raw             string
 	ExtraFields     map[string]apijson.Field
 }
@@ -634,11 +961,14 @@ func (r TurnStatus) IsKnown() bool {
 
 type ThreadNewParams struct {
 	Instructions param.Field[string] `json:"instructions"`
+	Message      param.Field[string] `json:"message"`
 	Model        param.Field[string] `json:"model"`
 	// Deprecated alias for `instructions`; accepted for backwards compatibility.
-	SystemPrompt param.Field[string]                 `json:"systemPrompt"`
-	Tools        param.Field[[]shared.ToolSpecParam] `json:"tools"`
-	UserMessage  param.Field[string]                 `json:"userMessage"`
+	SystemPrompt param.Field[string] `json:"systemPrompt"`
+	// Per-thread tool subset. Omit to inherit the agent's full effective tools; pass
+	// [] to run with no configurable tools. Provided entries can only narrow the
+	// agent's effective tools.
+	Tools param.Field[[]shared.ToolSpecParam] `json:"tools"`
 }
 
 func (r ThreadNewParams) MarshalJSON() (data []byte, err error) {
@@ -646,19 +976,10 @@ func (r ThreadNewParams) MarshalJSON() (data []byte, err error) {
 }
 
 type ThreadGetParams struct {
-	// Return messages newer than this sequence number. Mutually exclusive with
-	// `beforeSeq`.
-	AfterSeq param.Field[string] `query:"afterSeq"`
-	// Return messages older than this sequence number. Mutually exclusive with
-	// `afterSeq`.
-	BeforeSeq param.Field[string] `query:"beforeSeq"`
 	// When true, includes debug-only compiled context fields.
 	Debug param.Field[ThreadGetParamsDebug] `query:"debug"`
 	// When true, includes message content in the thread detail.
 	IncludeMessages param.Field[ThreadGetParamsIncludeMessages] `query:"includeMessages"`
-	// Maximum number of messages to include. Set to 0 to return metadata without
-	// messages.
-	MessageLimit param.Field[string] `query:"messageLimit"`
 }
 
 // URLQuery serializes [ThreadGetParams]'s query parameters as `url.Values`.
@@ -722,9 +1043,12 @@ func (r ThreadListParams) URLQuery() (v url.Values) {
 }
 
 type ThreadStartTurnParams struct {
-	UserMessage param.Field[string]                 `json:"userMessage" api:"required"`
-	Model       param.Field[string]                 `json:"model"`
-	Tools       param.Field[[]shared.ToolSpecParam] `json:"tools"`
+	Message param.Field[string] `json:"message" api:"required"`
+	Model   param.Field[string] `json:"model"`
+	// Per-turn tool subset. Omit to inherit the thread's current tools; pass [] to run
+	// this turn with no configurable tools. Provided entries can only narrow the
+	// agent/thread effective tools.
+	Tools param.Field[[]shared.ToolSpecParam] `json:"tools"`
 }
 
 func (r ThreadStartTurnParams) MarshalJSON() (data []byte, err error) {

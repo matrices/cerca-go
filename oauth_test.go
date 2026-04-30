@@ -29,8 +29,10 @@ func TestOAuthConnectWithOptionalParams(t *testing.T) {
 		context.TODO(),
 		"google",
 		cercago.OAuthConnectParams{
+			Owner: cercago.F[cercago.ConnectionOwnerUnionParam](cercago.ConnectionOwnerOrganizationConnectionOwnerParam{
+				Type: cercago.F(cercago.ConnectionOwnerOrganizationConnectionOwnerTypeOrganization),
+			}),
 			ReturnOrigin: cercago.F("https://app.example.com"),
-			Scope:        cercago.F("env:org_abc123:fleet_abc123"),
 			Scopes:       cercago.F([]string{"email", "profile"}),
 		},
 	)

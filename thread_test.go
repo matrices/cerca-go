@@ -31,10 +31,10 @@ func TestThreadNewWithOptionalParams(t *testing.T) {
 		"agent_abc123",
 		cercago.ThreadNewParams{
 			Instructions: cercago.F("instructions"),
+			Message:      cercago.F("message"),
 			Model:        cercago.F("model"),
 			SystemPrompt: cercago.F("systemPrompt"),
 			Tools:        cercago.F([]shared.ToolSpecParam{"sandbox.*"}),
-			UserMessage:  cercago.F("userMessage"),
 		},
 	)
 	if err != nil {
@@ -63,11 +63,8 @@ func TestThreadGetWithOptionalParams(t *testing.T) {
 		"agent_abc123",
 		"thread_abc123",
 		cercago.ThreadGetParams{
-			AfterSeq:        cercago.F("42"),
-			BeforeSeq:       cercago.F("42"),
 			Debug:           cercago.F(cercago.ThreadGetParamsDebugFalse),
 			IncludeMessages: cercago.F(cercago.ThreadGetParamsIncludeMessagesTrue),
-			MessageLimit:    cercago.F("50"),
 		},
 	)
 	if err != nil {
@@ -205,9 +202,9 @@ func TestThreadStartTurnWithOptionalParams(t *testing.T) {
 		"agent_abc123",
 		"thread_abc123",
 		cercago.ThreadStartTurnParams{
-			UserMessage: cercago.F("userMessage"),
-			Model:       cercago.F("model"),
-			Tools:       cercago.F([]shared.ToolSpecParam{"sandbox.*"}),
+			Message: cercago.F("message"),
+			Model:   cercago.F("model"),
+			Tools:   cercago.F([]shared.ToolSpecParam{"sandbox.*"}),
 		},
 	)
 	if err != nil {

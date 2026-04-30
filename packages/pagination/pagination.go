@@ -120,18 +120,18 @@ func (r *AgentsCursorPageAutoPager[T]) Index() int {
 	return r.run
 }
 
-type ApprovalsCursorPage[T any] struct {
-	Approvals []T                     `json:"approvals"`
-	Cursor    string                  `json:"cursor" api:"nullable"`
-	HasMore   bool                    `json:"hasMore"`
-	JSON      approvalsCursorPageJSON `json:"-"`
+type ApprovalRequestsCursorPage[T any] struct {
+	Approvals []T                            `json:"approvals"`
+	Cursor    string                         `json:"cursor" api:"nullable"`
+	HasMore   bool                           `json:"hasMore"`
+	JSON      approvalRequestsCursorPageJSON `json:"-"`
 	cfg       *requestconfig.RequestConfig
 	res       *http.Response
 }
 
-// approvalsCursorPageJSON contains the JSON metadata for the struct
-// [ApprovalsCursorPage[T]]
-type approvalsCursorPageJSON struct {
+// approvalRequestsCursorPageJSON contains the JSON metadata for the struct
+// [ApprovalRequestsCursorPage[T]]
+type approvalRequestsCursorPageJSON struct {
 	Approvals   apijson.Field
 	Cursor      apijson.Field
 	HasMore     apijson.Field
@@ -139,18 +139,18 @@ type approvalsCursorPageJSON struct {
 	ExtraFields map[string]apijson.Field
 }
 
-func (r *ApprovalsCursorPage[T]) UnmarshalJSON(data []byte) (err error) {
+func (r *ApprovalRequestsCursorPage[T]) UnmarshalJSON(data []byte) (err error) {
 	return apijson.UnmarshalRoot(data, r)
 }
 
-func (r approvalsCursorPageJSON) RawJSON() string {
+func (r approvalRequestsCursorPageJSON) RawJSON() string {
 	return r.raw
 }
 
 // GetNextPage returns the next page as defined by this pagination style. When
 // there is no next page, this function will return a 'nil' for the page value, but
 // will not return an error
-func (r *ApprovalsCursorPage[T]) GetNextPage() (res *ApprovalsCursorPage[T], err error) {
+func (r *ApprovalRequestsCursorPage[T]) GetNextPage() (res *ApprovalRequestsCursorPage[T], err error) {
 	if len(r.Approvals) == 0 {
 		return nil, nil
 	}
@@ -178,30 +178,30 @@ func (r *ApprovalsCursorPage[T]) GetNextPage() (res *ApprovalsCursorPage[T], err
 	return res, nil
 }
 
-func (r *ApprovalsCursorPage[T]) SetPageConfig(cfg *requestconfig.RequestConfig, res *http.Response) {
+func (r *ApprovalRequestsCursorPage[T]) SetPageConfig(cfg *requestconfig.RequestConfig, res *http.Response) {
 	if r == nil {
-		r = &ApprovalsCursorPage[T]{}
+		r = &ApprovalRequestsCursorPage[T]{}
 	}
 	r.cfg = cfg
 	r.res = res
 }
 
-type ApprovalsCursorPageAutoPager[T any] struct {
-	page *ApprovalsCursorPage[T]
+type ApprovalRequestsCursorPageAutoPager[T any] struct {
+	page *ApprovalRequestsCursorPage[T]
 	cur  T
 	idx  int
 	run  int
 	err  error
 }
 
-func NewApprovalsCursorPageAutoPager[T any](page *ApprovalsCursorPage[T], err error) *ApprovalsCursorPageAutoPager[T] {
-	return &ApprovalsCursorPageAutoPager[T]{
+func NewApprovalRequestsCursorPageAutoPager[T any](page *ApprovalRequestsCursorPage[T], err error) *ApprovalRequestsCursorPageAutoPager[T] {
+	return &ApprovalRequestsCursorPageAutoPager[T]{
 		page: page,
 		err:  err,
 	}
 }
 
-func (r *ApprovalsCursorPageAutoPager[T]) Next() bool {
+func (r *ApprovalRequestsCursorPageAutoPager[T]) Next() bool {
 	if r.page == nil || len(r.page.Approvals) == 0 {
 		return false
 	}
@@ -218,15 +218,15 @@ func (r *ApprovalsCursorPageAutoPager[T]) Next() bool {
 	return true
 }
 
-func (r *ApprovalsCursorPageAutoPager[T]) Current() T {
+func (r *ApprovalRequestsCursorPageAutoPager[T]) Current() T {
 	return r.cur
 }
 
-func (r *ApprovalsCursorPageAutoPager[T]) Err() error {
+func (r *ApprovalRequestsCursorPageAutoPager[T]) Err() error {
 	return r.err
 }
 
-func (r *ApprovalsCursorPageAutoPager[T]) Index() int {
+func (r *ApprovalRequestsCursorPageAutoPager[T]) Index() int {
 	return r.run
 }
 
@@ -777,115 +777,6 @@ func (r *GrantsCursorPageAutoPager[T]) Err() error {
 }
 
 func (r *GrantsCursorPageAutoPager[T]) Index() int {
-	return r.run
-}
-
-type LogsCursorPage[T any] struct {
-	Logs    []T                `json:"logs"`
-	Cursor  string             `json:"cursor" api:"nullable"`
-	HasMore bool               `json:"hasMore"`
-	JSON    logsCursorPageJSON `json:"-"`
-	cfg     *requestconfig.RequestConfig
-	res     *http.Response
-}
-
-// logsCursorPageJSON contains the JSON metadata for the struct [LogsCursorPage[T]]
-type logsCursorPageJSON struct {
-	Logs        apijson.Field
-	Cursor      apijson.Field
-	HasMore     apijson.Field
-	raw         string
-	ExtraFields map[string]apijson.Field
-}
-
-func (r *LogsCursorPage[T]) UnmarshalJSON(data []byte) (err error) {
-	return apijson.UnmarshalRoot(data, r)
-}
-
-func (r logsCursorPageJSON) RawJSON() string {
-	return r.raw
-}
-
-// GetNextPage returns the next page as defined by this pagination style. When
-// there is no next page, this function will return a 'nil' for the page value, but
-// will not return an error
-func (r *LogsCursorPage[T]) GetNextPage() (res *LogsCursorPage[T], err error) {
-	if len(r.Logs) == 0 {
-		return nil, nil
-	}
-
-	if !r.JSON.HasMore.IsMissing() && r.HasMore == false {
-		return nil, nil
-	}
-	next := r.Cursor
-	if len(next) == 0 {
-		return nil, nil
-	}
-	cfg := r.cfg.Clone(r.cfg.Context)
-	err = cfg.Apply(option.WithQuery("cursor", next))
-	if err != nil {
-		return nil, err
-	}
-	var raw *http.Response
-	cfg.ResponseInto = &raw
-	cfg.ResponseBodyInto = &res
-	err = cfg.Execute()
-	if err != nil {
-		return nil, err
-	}
-	res.SetPageConfig(cfg, raw)
-	return res, nil
-}
-
-func (r *LogsCursorPage[T]) SetPageConfig(cfg *requestconfig.RequestConfig, res *http.Response) {
-	if r == nil {
-		r = &LogsCursorPage[T]{}
-	}
-	r.cfg = cfg
-	r.res = res
-}
-
-type LogsCursorPageAutoPager[T any] struct {
-	page *LogsCursorPage[T]
-	cur  T
-	idx  int
-	run  int
-	err  error
-}
-
-func NewLogsCursorPageAutoPager[T any](page *LogsCursorPage[T], err error) *LogsCursorPageAutoPager[T] {
-	return &LogsCursorPageAutoPager[T]{
-		page: page,
-		err:  err,
-	}
-}
-
-func (r *LogsCursorPageAutoPager[T]) Next() bool {
-	if r.page == nil || len(r.page.Logs) == 0 {
-		return false
-	}
-	if r.idx >= len(r.page.Logs) {
-		r.idx = 0
-		r.page, r.err = r.page.GetNextPage()
-		if r.err != nil || r.page == nil || len(r.page.Logs) == 0 {
-			return false
-		}
-	}
-	r.cur = r.page.Logs[r.idx]
-	r.run += 1
-	r.idx += 1
-	return true
-}
-
-func (r *LogsCursorPageAutoPager[T]) Current() T {
-	return r.cur
-}
-
-func (r *LogsCursorPageAutoPager[T]) Err() error {
-	return r.err
-}
-
-func (r *LogsCursorPageAutoPager[T]) Index() int {
 	return r.run
 }
 

@@ -139,13 +139,15 @@ const ToolNameAgentScheduleDelete = shared.ToolNameAgentScheduleDelete
 const ToolNameAgentScheduleTrigger = shared.ToolNameAgentScheduleTrigger
 
 // Configurable runtime tool name, configurable namespace wildcard such as
-// sandbox._, or external namespace wildcard such as google._.
+// sandbox._, or external namespace wildcard such as google._. At thread and turn
+// scope, entries can only narrow the agent's effective tools.
 //
 // This is an alias to an internal type.
 type ToolSpec = shared.ToolSpec
 
 // Configurable runtime tool name, configurable namespace wildcard such as
-// sandbox._, or external namespace wildcard such as google._.
+// sandbox._, or external namespace wildcard such as google._. At thread and turn
+// scope, entries can only narrow the agent's effective tools.
 //
 // This is an alias to an internal type.
 type ToolSpecParam = shared.ToolSpecParam

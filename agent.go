@@ -40,6 +40,7 @@ func NewAgentService(opts ...option.RequestOption) (r *AgentService) {
 	return
 }
 
+// Agents
 func (r *AgentService) New(ctx context.Context, body AgentNewParams, opts ...option.RequestOption) (res *Agent, err error) {
 	opts = slices.Concat(r.Options, opts)
 	path := "agents"
@@ -47,6 +48,7 @@ func (r *AgentService) New(ctx context.Context, body AgentNewParams, opts ...opt
 	return res, err
 }
 
+// Agent
 func (r *AgentService) Get(ctx context.Context, agentID string, opts ...option.RequestOption) (res *Agent, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -58,6 +60,7 @@ func (r *AgentService) Get(ctx context.Context, agentID string, opts ...option.R
 	return res, err
 }
 
+// Agent
 func (r *AgentService) Update(ctx context.Context, agentID string, body AgentUpdateParams, opts ...option.RequestOption) (res *Agent, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -69,6 +72,7 @@ func (r *AgentService) Update(ctx context.Context, agentID string, body AgentUpd
 	return res, err
 }
 
+// Agents
 func (r *AgentService) List(ctx context.Context, query AgentListParams, opts ...option.RequestOption) (res *pagination.AgentsCursorPage[AgentSummary], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -86,10 +90,12 @@ func (r *AgentService) List(ctx context.Context, query AgentListParams, opts ...
 	return res, nil
 }
 
+// Agents
 func (r *AgentService) ListAutoPaging(ctx context.Context, query AgentListParams, opts ...option.RequestOption) *pagination.AgentsCursorPageAutoPager[AgentSummary] {
 	return pagination.NewAgentsCursorPageAutoPager(r.List(ctx, query, opts...))
 }
 
+// Agent
 func (r *AgentService) Delete(ctx context.Context, agentID string, opts ...option.RequestOption) (res *AgentDeleteResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -101,6 +107,19 @@ func (r *AgentService) Delete(ctx context.Context, agentID string, opts ...optio
 	return res, err
 }
 
+// Tools
+func (r *AgentService) ListTools(ctx context.Context, agentID string, opts ...option.RequestOption) (res *AgentListToolsResponse, err error) {
+	opts = slices.Concat(r.Options, opts)
+	if agentID == "" {
+		err = errors.New("missing required agentId parameter")
+		return nil, err
+	}
+	path := fmt.Sprintf("agents/%s/tools", agentID)
+	err = requestconfig.ExecuteNewRequest(ctx, http.MethodGet, path, nil, &res, opts...)
+	return res, err
+}
+
+// Config
 func (r *AgentService) GetConfig(ctx context.Context, agentID string, opts ...option.RequestOption) (res *EffectiveConfiguration, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -112,6 +131,7 @@ func (r *AgentService) GetConfig(ctx context.Context, agentID string, opts ...op
 	return res, err
 }
 
+// Metadata
 func (r *AgentService) UpdateMetadata(ctx context.Context, agentID string, body AgentUpdateMetadataParams, opts ...option.RequestOption) (res *Agent, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -235,11 +255,13 @@ func (r ApprovalPolicyParam) MarshalJSON() (data []byte, err error) {
 }
 
 type Configuration struct {
-	Approvals    ApprovalPolicy    `json:"approvals"`
-	DefaultModel string            `json:"defaultModel"`
-	Instructions string            `json:"instructions"`
-	Tools        []shared.ToolSpec `json:"tools"`
-	JSON         configurationJSON `json:"-"`
+	Approvals    ApprovalPolicy `json:"approvals"`
+	DefaultModel string         `json:"defaultModel"`
+	Instructions string         `json:"instructions"`
+	// Agent tool allowlist. These tools are subject to fleet defaults and locks, and
+	// thread or turn requests may only narrow the resulting effective tools.
+	Tools []shared.ToolSpec `json:"tools"`
+	JSON  configurationJSON `json:"-"`
 }
 
 // configurationJSON contains the JSON metadata for the struct [Configuration]
@@ -261,10 +283,12 @@ func (r configurationJSON) RawJSON() string {
 }
 
 type ConfigurationParam struct {
-	Approvals    param.Field[ApprovalPolicyParam]    `json:"approvals"`
-	DefaultModel param.Field[string]                 `json:"defaultModel"`
-	Instructions param.Field[string]                 `json:"instructions"`
-	Tools        param.Field[[]shared.ToolSpecParam] `json:"tools"`
+	Approvals    param.Field[ApprovalPolicyParam] `json:"approvals"`
+	DefaultModel param.Field[string]              `json:"defaultModel"`
+	Instructions param.Field[string]              `json:"instructions"`
+	// Agent tool allowlist. These tools are subject to fleet defaults and locks, and
+	// thread or turn requests may only narrow the resulting effective tools.
+	Tools param.Field[[]shared.ToolSpecParam] `json:"tools"`
 }
 
 func (r ConfigurationParam) MarshalJSON() (data []byte, err error) {
@@ -288,15 +312,107 @@ func (r ConfigurationFieldName) IsKnown() bool {
 	return false
 }
 
+// An external provider or tool-source tool currently available to the agent.
+type DiscoveredTool struct {
+	Approval    DiscoveredToolApproval `json:"approval" api:"required"`
+	Category    DiscoveredToolCategory `json:"category" api:"required"`
+	Description string                 `json:"description" api:"required"`
+	// JSON Schema object describing tool input parameters.
+	InputSchema        map[string]interface{} `json:"inputSchema" api:"required"`
+	Name               string                 `json:"name" api:"required"`
+	Origin             DiscoveredToolOrigin   `json:"origin" api:"required"`
+	Source             string                 `json:"source" api:"required"`
+	AccountLabel       string                 `json:"accountLabel"`
+	ConnectionID       string                 `json:"connectionId"`
+	ConnectionMetadata ToolConnectionMetadata `json:"connectionMetadata"`
+	SourceID           string                 `json:"sourceId"`
+	SourceVersion      float64                `json:"sourceVersion"`
+	JSON               discoveredToolJSON     `json:"-"`
+}
+
+// discoveredToolJSON contains the JSON metadata for the struct [DiscoveredTool]
+type discoveredToolJSON struct {
+	Approval           apijson.Field
+	Category           apijson.Field
+	Description        apijson.Field
+	InputSchema        apijson.Field
+	Name               apijson.Field
+	Origin             apijson.Field
+	Source             apijson.Field
+	AccountLabel       apijson.Field
+	ConnectionID       apijson.Field
+	ConnectionMetadata apijson.Field
+	SourceID           apijson.Field
+	SourceVersion      apijson.Field
+	raw                string
+	ExtraFields        map[string]apijson.Field
+}
+
+func (r *DiscoveredTool) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r discoveredToolJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r DiscoveredTool) implementsTool() {}
+
+type DiscoveredToolApproval string
+
+const (
+	DiscoveredToolApprovalAlways DiscoveredToolApproval = "always"
+	DiscoveredToolApprovalNever  DiscoveredToolApproval = "never"
+)
+
+func (r DiscoveredToolApproval) IsKnown() bool {
+	switch r {
+	case DiscoveredToolApprovalAlways, DiscoveredToolApprovalNever:
+		return true
+	}
+	return false
+}
+
+type DiscoveredToolCategory string
+
+const (
+	DiscoveredToolCategoryExternal DiscoveredToolCategory = "external"
+)
+
+func (r DiscoveredToolCategory) IsKnown() bool {
+	switch r {
+	case DiscoveredToolCategoryExternal:
+		return true
+	}
+	return false
+}
+
+type DiscoveredToolOrigin string
+
+const (
+	DiscoveredToolOriginBuiltin    DiscoveredToolOrigin = "builtin"
+	DiscoveredToolOriginToolSource DiscoveredToolOrigin = "tool_source"
+)
+
+func (r DiscoveredToolOrigin) IsKnown() bool {
+	switch r {
+	case DiscoveredToolOriginBuiltin, DiscoveredToolOriginToolSource:
+		return true
+	}
+	return false
+}
+
 type EffectiveConfiguration struct {
 	Approvals                EffectiveConfigurationApprovals `json:"approvals" api:"required"`
 	ApprovalsWritableByAgent bool                            `json:"approvalsWritableByAgent" api:"required"`
 	DefaultModel             string                          `json:"defaultModel" api:"required"`
 	LockedByFleet            []ConfigurationFieldName        `json:"lockedByFleet" api:"required"`
 	ResolvedFromFleet        []ConfigurationFieldName        `json:"resolvedFromFleet" api:"required"`
-	Tools                    []shared.ToolName               `json:"tools" api:"required"`
-	Instructions             string                          `json:"instructions"`
-	JSON                     effectiveConfigurationJSON      `json:"-"`
+	// Effective internal runtime tools after applying fleet defaults, fleet locks, and
+	// the agent allowlist.
+	Tools        []shared.ToolName          `json:"tools" api:"required"`
+	Instructions string                     `json:"instructions"`
+	JSON         effectiveConfigurationJSON `json:"-"`
 }
 
 // effectiveConfigurationJSON contains the JSON metadata for the struct
@@ -396,14 +512,16 @@ type ExecutionPrincipalUnion interface {
 func init() {
 	apijson.RegisterUnion(
 		reflect.TypeOf((*ExecutionPrincipalUnion)(nil)).Elem(),
-		"",
+		"kind",
 		apijson.UnionVariant{
-			TypeFilter: gjson.JSON,
-			Type:       reflect.TypeOf(ExecutionPrincipalUserExecutionPrincipal{}),
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ExecutionPrincipalUserExecutionPrincipal{}),
+			DiscriminatorValue: "user",
 		},
 		apijson.UnionVariant{
-			TypeFilter: gjson.JSON,
-			Type:       reflect.TypeOf(ExecutionPrincipalAPIKeyExecutionPrincipal{}),
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ExecutionPrincipalAPIKeyExecutionPrincipal{}),
+			DiscriminatorValue: "apiKey",
 		},
 	)
 }
@@ -507,6 +625,250 @@ type Metadata map[string]string
 
 type MetadataParam map[string]string
 
+type SourceWarning struct {
+	Message  string            `json:"message" api:"required"`
+	Source   string            `json:"source" api:"required"`
+	SourceID string            `json:"sourceId"`
+	JSON     sourceWarningJSON `json:"-"`
+}
+
+// sourceWarningJSON contains the JSON metadata for the struct [SourceWarning]
+type sourceWarningJSON struct {
+	Message     apijson.Field
+	Source      apijson.Field
+	SourceID    apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *SourceWarning) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r sourceWarningJSON) RawJSON() string {
+	return r.raw
+}
+
+// A unified available tool entry. Runtime tools include requiresApproval; external
+// tools include approval.
+type Tool struct {
+	Category    ToolCategory `json:"category" api:"required"`
+	Description string       `json:"description" api:"required"`
+	// This field can have the runtime type of [shared.JsonObject],
+	// [map[string]interface{}].
+	InputSchema        interface{}            `json:"inputSchema" api:"required"`
+	Name               shared.ToolName        `json:"name" api:"required"`
+	AccountLabel       string                 `json:"accountLabel"`
+	Approval           ToolApproval           `json:"approval"`
+	ApprovalSource     ToolApprovalSource     `json:"approvalSource"`
+	ConnectionID       string                 `json:"connectionId"`
+	ConnectionMetadata ToolConnectionMetadata `json:"connectionMetadata"`
+	Origin             ToolOrigin             `json:"origin"`
+	RequiresApproval   bool                   `json:"requiresApproval"`
+	Source             string                 `json:"source"`
+	SourceID           string                 `json:"sourceId"`
+	SourceVersion      float64                `json:"sourceVersion"`
+	JSON               toolJSON               `json:"-"`
+	union              ToolUnion
+}
+
+// toolJSON contains the JSON metadata for the struct [Tool]
+type toolJSON struct {
+	Category           apijson.Field
+	Description        apijson.Field
+	InputSchema        apijson.Field
+	Name               apijson.Field
+	AccountLabel       apijson.Field
+	Approval           apijson.Field
+	ApprovalSource     apijson.Field
+	ConnectionID       apijson.Field
+	ConnectionMetadata apijson.Field
+	Origin             apijson.Field
+	RequiresApproval   apijson.Field
+	Source             apijson.Field
+	SourceID           apijson.Field
+	SourceVersion      apijson.Field
+	raw                string
+	ExtraFields        map[string]apijson.Field
+}
+
+func (r toolJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r *Tool) UnmarshalJSON(data []byte) (err error) {
+	*r = Tool{}
+	err = apijson.UnmarshalRoot(data, &r.union)
+	if err != nil {
+		return err
+	}
+	return apijson.Port(r.union, &r)
+}
+
+// AsUnion returns a [ToolUnion] interface which you can cast to the specific types
+// for more type safety.
+//
+// Possible runtime types of the union are [ToolDescriptor], [DiscoveredTool].
+func (r Tool) AsUnion() ToolUnion {
+	return r.union
+}
+
+// A unified available tool entry. Runtime tools include requiresApproval; external
+// tools include approval.
+//
+// Union satisfied by [ToolDescriptor] or [DiscoveredTool].
+type ToolUnion interface {
+	implementsTool()
+}
+
+func init() {
+	apijson.RegisterUnion(
+		reflect.TypeOf((*ToolUnion)(nil)).Elem(),
+		"category",
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ToolDescriptor{}),
+			DiscriminatorValue: "builtIn",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ToolDescriptor{}),
+			DiscriminatorValue: "configurable",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(DiscoveredTool{}),
+			DiscriminatorValue: "external",
+		},
+	)
+}
+
+type ToolCategory string
+
+const (
+	ToolCategoryBuiltIn      ToolCategory = "builtIn"
+	ToolCategoryConfigurable ToolCategory = "configurable"
+	ToolCategoryExternal     ToolCategory = "external"
+)
+
+func (r ToolCategory) IsKnown() bool {
+	switch r {
+	case ToolCategoryBuiltIn, ToolCategoryConfigurable, ToolCategoryExternal:
+		return true
+	}
+	return false
+}
+
+type ToolApproval string
+
+const (
+	ToolApprovalAlways ToolApproval = "always"
+	ToolApprovalNever  ToolApproval = "never"
+)
+
+func (r ToolApproval) IsKnown() bool {
+	switch r {
+	case ToolApprovalAlways, ToolApprovalNever:
+		return true
+	}
+	return false
+}
+
+type ToolApprovalSource string
+
+const (
+	ToolApprovalSourceAgent   ToolApprovalSource = "agent"
+	ToolApprovalSourceEnv     ToolApprovalSource = "env"
+	ToolApprovalSourceCatalog ToolApprovalSource = "catalog"
+)
+
+func (r ToolApprovalSource) IsKnown() bool {
+	switch r {
+	case ToolApprovalSourceAgent, ToolApprovalSourceEnv, ToolApprovalSourceCatalog:
+		return true
+	}
+	return false
+}
+
+type ToolOrigin string
+
+const (
+	ToolOriginBuiltin    ToolOrigin = "builtin"
+	ToolOriginToolSource ToolOrigin = "tool_source"
+)
+
+func (r ToolOrigin) IsKnown() bool {
+	switch r {
+	case ToolOriginBuiltin, ToolOriginToolSource:
+		return true
+	}
+	return false
+}
+
+// A built-in or configurable runtime tool currently available to the agent.
+type ToolDescriptor struct {
+	ApprovalSource   ToolDescriptorApprovalSource `json:"approvalSource" api:"required"`
+	Category         ToolDescriptorCategory       `json:"category" api:"required"`
+	Description      string                       `json:"description" api:"required"`
+	InputSchema      shared.JsonObject            `json:"inputSchema" api:"required"`
+	Name             shared.ToolName              `json:"name" api:"required"`
+	RequiresApproval bool                         `json:"requiresApproval" api:"required"`
+	JSON             toolDescriptorJSON           `json:"-"`
+}
+
+// toolDescriptorJSON contains the JSON metadata for the struct [ToolDescriptor]
+type toolDescriptorJSON struct {
+	ApprovalSource   apijson.Field
+	Category         apijson.Field
+	Description      apijson.Field
+	InputSchema      apijson.Field
+	Name             apijson.Field
+	RequiresApproval apijson.Field
+	raw              string
+	ExtraFields      map[string]apijson.Field
+}
+
+func (r *ToolDescriptor) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r toolDescriptorJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ToolDescriptor) implementsTool() {}
+
+type ToolDescriptorApprovalSource string
+
+const (
+	ToolDescriptorApprovalSourceAgent   ToolDescriptorApprovalSource = "agent"
+	ToolDescriptorApprovalSourceEnv     ToolDescriptorApprovalSource = "env"
+	ToolDescriptorApprovalSourceCatalog ToolDescriptorApprovalSource = "catalog"
+)
+
+func (r ToolDescriptorApprovalSource) IsKnown() bool {
+	switch r {
+	case ToolDescriptorApprovalSourceAgent, ToolDescriptorApprovalSourceEnv, ToolDescriptorApprovalSourceCatalog:
+		return true
+	}
+	return false
+}
+
+type ToolDescriptorCategory string
+
+const (
+	ToolDescriptorCategoryBuiltIn      ToolDescriptorCategory = "builtIn"
+	ToolDescriptorCategoryConfigurable ToolDescriptorCategory = "configurable"
+)
+
+func (r ToolDescriptorCategory) IsKnown() bool {
+	switch r {
+	case ToolDescriptorCategoryBuiltIn, ToolDescriptorCategoryConfigurable:
+		return true
+	}
+	return false
+}
+
 type AgentDeleteResponse struct {
 	Success AgentDeleteResponseSuccess `json:"success" api:"required"`
 	JSON    agentDeleteResponseJSON    `json:"-"`
@@ -540,6 +902,32 @@ func (r AgentDeleteResponseSuccess) IsKnown() bool {
 		return true
 	}
 	return false
+}
+
+// Response for GET /agents/{agentId}/tools. The tools field is an inspection list,
+// not a configuration request field.
+type AgentListToolsResponse struct {
+	// Unified list of runtime and external tools currently available to the agent.
+	Tools          []Tool                     `json:"tools" api:"required"`
+	SourceWarnings []SourceWarning            `json:"sourceWarnings"`
+	JSON           agentListToolsResponseJSON `json:"-"`
+}
+
+// agentListToolsResponseJSON contains the JSON metadata for the struct
+// [AgentListToolsResponse]
+type agentListToolsResponseJSON struct {
+	Tools          apijson.Field
+	SourceWarnings apijson.Field
+	raw            string
+	ExtraFields    map[string]apijson.Field
+}
+
+func (r *AgentListToolsResponse) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r agentListToolsResponseJSON) RawJSON() string {
+	return r.raw
 }
 
 type AgentNewParams struct {
