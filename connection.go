@@ -39,7 +39,7 @@ func NewConnectionService(opts ...option.RequestOption) (r *ConnectionService) {
 	return
 }
 
-// API Keys
+// Create API key
 func (r *ConnectionService) New(ctx context.Context, body ConnectionNewParams, opts ...option.RequestOption) (res *Connection, err error) {
 	opts = slices.Concat(r.Options, opts)
 	path := "connections/api-keys"
@@ -47,7 +47,7 @@ func (r *ConnectionService) New(ctx context.Context, body ConnectionNewParams, o
 	return res, err
 }
 
-// Connections
+// List connections
 func (r *ConnectionService) List(ctx context.Context, query ConnectionListParams, opts ...option.RequestOption) (res *pagination.ConnectionsCursorPage[Connection], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -65,12 +65,12 @@ func (r *ConnectionService) List(ctx context.Context, query ConnectionListParams
 	return res, nil
 }
 
-// Connections
+// List connections
 func (r *ConnectionService) ListAutoPaging(ctx context.Context, query ConnectionListParams, opts ...option.RequestOption) *pagination.ConnectionsCursorPageAutoPager[Connection] {
 	return pagination.NewConnectionsCursorPageAutoPager(r.List(ctx, query, opts...))
 }
 
-// Connection
+// Delete connection
 func (r *ConnectionService) Delete(ctx context.Context, connectionID string, body ConnectionDeleteParams, opts ...option.RequestOption) (res *ConnectionDeleteResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if connectionID == "" {
@@ -82,7 +82,7 @@ func (r *ConnectionService) Delete(ctx context.Context, connectionID string, bod
 	return res, err
 }
 
-// Connections
+// Attach connection
 func (r *ConnectionService) Attach(ctx context.Context, agentID string, body ConnectionAttachParams, opts ...option.RequestOption) (res *AttachedConnection, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -94,7 +94,7 @@ func (r *ConnectionService) Attach(ctx context.Context, agentID string, body Con
 	return res, err
 }
 
-// Connection
+// Detach connection
 func (r *ConnectionService) Detach(ctx context.Context, agentID string, connectionID string, opts ...option.RequestOption) (res *ConnectionDetachResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -110,7 +110,7 @@ func (r *ConnectionService) Detach(ctx context.Context, agentID string, connecti
 	return res, err
 }
 
-// Connections
+// List connections
 func (r *ConnectionService) ListForAgent(ctx context.Context, agentID string, opts ...option.RequestOption) (res *ConnectionListForAgentResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {

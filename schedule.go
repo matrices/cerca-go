@@ -36,7 +36,7 @@ func NewScheduleService(opts ...option.RequestOption) (r *ScheduleService) {
 	return
 }
 
-// Schedules
+// Create schedule
 func (r *ScheduleService) New(ctx context.Context, agentID string, body ScheduleNewParams, opts ...option.RequestOption) (res *Schedule, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -48,7 +48,7 @@ func (r *ScheduleService) New(ctx context.Context, agentID string, body Schedule
 	return res, err
 }
 
-// Schedule
+// Update schedule
 func (r *ScheduleService) Update(ctx context.Context, agentID string, scheduleID string, body ScheduleUpdateParams, opts ...option.RequestOption) (res *Schedule, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -64,7 +64,7 @@ func (r *ScheduleService) Update(ctx context.Context, agentID string, scheduleID
 	return res, err
 }
 
-// Schedules
+// List schedules
 func (r *ScheduleService) List(ctx context.Context, agentID string, opts ...option.RequestOption) (res *ScheduleListResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -76,7 +76,7 @@ func (r *ScheduleService) List(ctx context.Context, agentID string, opts ...opti
 	return res, err
 }
 
-// Schedule
+// Delete schedule
 func (r *ScheduleService) Delete(ctx context.Context, agentID string, scheduleID string, opts ...option.RequestOption) (res *ScheduleDeleteResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {
@@ -92,7 +92,7 @@ func (r *ScheduleService) Delete(ctx context.Context, agentID string, scheduleID
 	return res, err
 }
 
-// Trigger
+// Trigger schedule
 func (r *ScheduleService) Trigger(ctx context.Context, agentID string, scheduleID string, opts ...option.RequestOption) (res *ScheduleTriggerResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if agentID == "" {

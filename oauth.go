@@ -34,7 +34,7 @@ func NewOAuthService(opts ...option.RequestOption) (r *OAuthService) {
 	return
 }
 
-// Connect
+// Start OAuth authorization
 func (r *OAuthService) Connect(ctx context.Context, provider string, body OAuthConnectParams, opts ...option.RequestOption) (res *OAuthConnectResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if provider == "" {
