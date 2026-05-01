@@ -127,6 +127,63 @@ func (r *ToolService) Delete(ctx context.Context, fleetID string, sourceID strin
 	return err
 }
 
+type APIKeyToolSourceAuth struct {
+	ConnectionID string `json:"connectionId" api:"required"`
+	// Where an API key or OAuth access token should be injected into outgoing
+	// tool-source requests.
+	Inject AuthInjection            `json:"inject" api:"required"`
+	Kind   APIKeyToolSourceAuthKind `json:"kind" api:"required"`
+	JSON   apiKeyToolSourceAuthJSON `json:"-"`
+}
+
+// apiKeyToolSourceAuthJSON contains the JSON metadata for the struct
+// [APIKeyToolSourceAuth]
+type apiKeyToolSourceAuthJSON struct {
+	ConnectionID apijson.Field
+	Inject       apijson.Field
+	Kind         apijson.Field
+	raw          string
+	ExtraFields  map[string]apijson.Field
+}
+
+func (r *APIKeyToolSourceAuth) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r apiKeyToolSourceAuthJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r APIKeyToolSourceAuth) implementsToolSourceAuth() {}
+
+type APIKeyToolSourceAuthKind string
+
+const (
+	APIKeyToolSourceAuthKindAPIKey APIKeyToolSourceAuthKind = "api_key"
+)
+
+func (r APIKeyToolSourceAuthKind) IsKnown() bool {
+	switch r {
+	case APIKeyToolSourceAuthKindAPIKey:
+		return true
+	}
+	return false
+}
+
+type APIKeyToolSourceAuthParam struct {
+	ConnectionID param.Field[string] `json:"connectionId" api:"required"`
+	// Where an API key or OAuth access token should be injected into outgoing
+	// tool-source requests.
+	Inject param.Field[AuthInjectionUnionParam]  `json:"inject" api:"required"`
+	Kind   param.Field[APIKeyToolSourceAuthKind] `json:"kind" api:"required"`
+}
+
+func (r APIKeyToolSourceAuthParam) MarshalJSON() (data []byte, err error) {
+	return apijson.MarshalRoot(r)
+}
+
+func (r APIKeyToolSourceAuthParam) implementsToolSourceAuthUnionParam() {}
+
 // Where an API key or OAuth access token should be injected into outgoing
 // tool-source requests.
 type AuthInjection struct {
@@ -711,6 +768,113 @@ func (r McpToolSourceType) IsKnown() bool {
 	return false
 }
 
+type NoToolSourceAuth struct {
+	Kind NoToolSourceAuthKind `json:"kind" api:"required"`
+	JSON noToolSourceAuthJSON `json:"-"`
+}
+
+// noToolSourceAuthJSON contains the JSON metadata for the struct
+// [NoToolSourceAuth]
+type noToolSourceAuthJSON struct {
+	Kind        apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *NoToolSourceAuth) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r noToolSourceAuthJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r NoToolSourceAuth) implementsToolSourceAuth() {}
+
+type NoToolSourceAuthKind string
+
+const (
+	NoToolSourceAuthKindNone NoToolSourceAuthKind = "none"
+)
+
+func (r NoToolSourceAuthKind) IsKnown() bool {
+	switch r {
+	case NoToolSourceAuthKindNone:
+		return true
+	}
+	return false
+}
+
+type NoToolSourceAuthParam struct {
+	Kind param.Field[NoToolSourceAuthKind] `json:"kind" api:"required"`
+}
+
+func (r NoToolSourceAuthParam) MarshalJSON() (data []byte, err error) {
+	return apijson.MarshalRoot(r)
+}
+
+func (r NoToolSourceAuthParam) implementsToolSourceAuthUnionParam() {}
+
+type OAuthConnectionToolSourceAuth struct {
+	Kind     OAuthConnectionToolSourceAuthKind `json:"kind" api:"required"`
+	Provider string                            `json:"provider" api:"required"`
+	// Where an API key or OAuth access token should be injected into outgoing
+	// tool-source requests.
+	Inject         AuthInjection                     `json:"inject"`
+	RequiredScopes []string                          `json:"requiredScopes"`
+	JSON           oauthConnectionToolSourceAuthJSON `json:"-"`
+}
+
+// oauthConnectionToolSourceAuthJSON contains the JSON metadata for the struct
+// [OAuthConnectionToolSourceAuth]
+type oauthConnectionToolSourceAuthJSON struct {
+	Kind           apijson.Field
+	Provider       apijson.Field
+	Inject         apijson.Field
+	RequiredScopes apijson.Field
+	raw            string
+	ExtraFields    map[string]apijson.Field
+}
+
+func (r *OAuthConnectionToolSourceAuth) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r oauthConnectionToolSourceAuthJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r OAuthConnectionToolSourceAuth) implementsToolSourceAuth() {}
+
+type OAuthConnectionToolSourceAuthKind string
+
+const (
+	OAuthConnectionToolSourceAuthKindOAuthConnection OAuthConnectionToolSourceAuthKind = "oauth_connection"
+)
+
+func (r OAuthConnectionToolSourceAuthKind) IsKnown() bool {
+	switch r {
+	case OAuthConnectionToolSourceAuthKindOAuthConnection:
+		return true
+	}
+	return false
+}
+
+type OAuthConnectionToolSourceAuthParam struct {
+	Kind     param.Field[OAuthConnectionToolSourceAuthKind] `json:"kind" api:"required"`
+	Provider param.Field[string]                            `json:"provider" api:"required"`
+	// Where an API key or OAuth access token should be injected into outgoing
+	// tool-source requests.
+	Inject         param.Field[AuthInjectionUnionParam] `json:"inject"`
+	RequiredScopes param.Field[[]string]                `json:"requiredScopes"`
+}
+
+func (r OAuthConnectionToolSourceAuthParam) MarshalJSON() (data []byte, err error) {
+	return apijson.MarshalRoot(r)
+}
+
+func (r OAuthConnectionToolSourceAuthParam) implementsToolSourceAuthUnionParam() {}
+
 // Source-owned OAuth exchange configuration. Public schemas use connection IDs for
 // stored client secrets and assertions.
 type OAuthExchangeConfig struct {
@@ -975,6 +1139,67 @@ func (r OAuthExchangeConfigJwtBearerOAuthExchangeParam) MarshalJSON() (data []by
 
 func (r OAuthExchangeConfigJwtBearerOAuthExchangeParam) implementsOAuthExchangeConfigUnionParam() {}
 
+type OAuthExchangeToolSourceAuth struct {
+	// Source-owned OAuth exchange configuration. Public schemas use connection IDs for
+	// stored client secrets and assertions.
+	Exchange OAuthExchangeConfig `json:"exchange" api:"required"`
+	// Where an API key or OAuth access token should be injected into outgoing
+	// tool-source requests.
+	Inject AuthInjection                   `json:"inject" api:"required"`
+	Kind   OAuthExchangeToolSourceAuthKind `json:"kind" api:"required"`
+	JSON   oauthExchangeToolSourceAuthJSON `json:"-"`
+}
+
+// oauthExchangeToolSourceAuthJSON contains the JSON metadata for the struct
+// [OAuthExchangeToolSourceAuth]
+type oauthExchangeToolSourceAuthJSON struct {
+	Exchange    apijson.Field
+	Inject      apijson.Field
+	Kind        apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *OAuthExchangeToolSourceAuth) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r oauthExchangeToolSourceAuthJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r OAuthExchangeToolSourceAuth) implementsToolSourceAuth() {}
+
+type OAuthExchangeToolSourceAuthKind string
+
+const (
+	OAuthExchangeToolSourceAuthKindOAuthExchange OAuthExchangeToolSourceAuthKind = "oauth_exchange"
+)
+
+func (r OAuthExchangeToolSourceAuthKind) IsKnown() bool {
+	switch r {
+	case OAuthExchangeToolSourceAuthKindOAuthExchange:
+		return true
+	}
+	return false
+}
+
+type OAuthExchangeToolSourceAuthParam struct {
+	// Source-owned OAuth exchange configuration. Public schemas use connection IDs for
+	// stored client secrets and assertions.
+	Exchange param.Field[OAuthExchangeConfigUnionParam] `json:"exchange" api:"required"`
+	// Where an API key or OAuth access token should be injected into outgoing
+	// tool-source requests.
+	Inject param.Field[AuthInjectionUnionParam]         `json:"inject" api:"required"`
+	Kind   param.Field[OAuthExchangeToolSourceAuthKind] `json:"kind" api:"required"`
+}
+
+func (r OAuthExchangeToolSourceAuthParam) MarshalJSON() (data []byte, err error) {
+	return apijson.MarshalRoot(r)
+}
+
+func (r OAuthExchangeToolSourceAuthParam) implementsToolSourceAuthUnionParam() {}
+
 // How the HTTP response should be normalized for the agent.
 type ResponseNormalizationHint struct {
 	Mode ResponseNormalizationHintMode `json:"mode" api:"required"`
@@ -1184,10 +1409,9 @@ func (r *ToolSourceAuth) UnmarshalJSON(data []byte) (err error) {
 // AsUnion returns a [ToolSourceAuthUnion] interface which you can cast to the
 // specific types for more type safety.
 //
-// Possible runtime types of the union are [ToolSourceAuthNoToolSourceAuth],
-// [ToolSourceAuthAPIKeyToolSourceAuth],
-// [ToolSourceAuthOAuthExchangeToolSourceAuth],
-// [ToolSourceAuthOAuthConnectionToolSourceAuth].
+// Possible runtime types of the union are [NoToolSourceAuth],
+// [APIKeyToolSourceAuth], [OAuthExchangeToolSourceAuth],
+// [OAuthConnectionToolSourceAuth].
 func (r ToolSourceAuth) AsUnion() ToolSourceAuthUnion {
 	return r.union
 }
@@ -1195,10 +1419,8 @@ func (r ToolSourceAuth) AsUnion() ToolSourceAuthUnion {
 // Tool source authentication configuration. The `kind` field selects one of
 // `none`, `api_key`, `oauth_exchange`, or `oauth_connection`.
 //
-// Union satisfied by [ToolSourceAuthNoToolSourceAuth],
-// [ToolSourceAuthAPIKeyToolSourceAuth],
-// [ToolSourceAuthOAuthExchangeToolSourceAuth] or
-// [ToolSourceAuthOAuthConnectionToolSourceAuth].
+// Union satisfied by [NoToolSourceAuth], [APIKeyToolSourceAuth],
+// [OAuthExchangeToolSourceAuth] or [OAuthConnectionToolSourceAuth].
 type ToolSourceAuthUnion interface {
 	implementsToolSourceAuth()
 }
@@ -1209,195 +1431,25 @@ func init() {
 		"kind",
 		apijson.UnionVariant{
 			TypeFilter:         gjson.JSON,
-			Type:               reflect.TypeOf(ToolSourceAuthNoToolSourceAuth{}),
+			Type:               reflect.TypeOf(NoToolSourceAuth{}),
 			DiscriminatorValue: "none",
 		},
 		apijson.UnionVariant{
 			TypeFilter:         gjson.JSON,
-			Type:               reflect.TypeOf(ToolSourceAuthAPIKeyToolSourceAuth{}),
+			Type:               reflect.TypeOf(APIKeyToolSourceAuth{}),
 			DiscriminatorValue: "api_key",
 		},
 		apijson.UnionVariant{
 			TypeFilter:         gjson.JSON,
-			Type:               reflect.TypeOf(ToolSourceAuthOAuthExchangeToolSourceAuth{}),
+			Type:               reflect.TypeOf(OAuthExchangeToolSourceAuth{}),
 			DiscriminatorValue: "oauth_exchange",
 		},
 		apijson.UnionVariant{
 			TypeFilter:         gjson.JSON,
-			Type:               reflect.TypeOf(ToolSourceAuthOAuthConnectionToolSourceAuth{}),
+			Type:               reflect.TypeOf(OAuthConnectionToolSourceAuth{}),
 			DiscriminatorValue: "oauth_connection",
 		},
 	)
-}
-
-type ToolSourceAuthNoToolSourceAuth struct {
-	Kind ToolSourceAuthNoToolSourceAuthKind `json:"kind" api:"required"`
-	JSON toolSourceAuthNoToolSourceAuthJSON `json:"-"`
-}
-
-// toolSourceAuthNoToolSourceAuthJSON contains the JSON metadata for the struct
-// [ToolSourceAuthNoToolSourceAuth]
-type toolSourceAuthNoToolSourceAuthJSON struct {
-	Kind        apijson.Field
-	raw         string
-	ExtraFields map[string]apijson.Field
-}
-
-func (r *ToolSourceAuthNoToolSourceAuth) UnmarshalJSON(data []byte) (err error) {
-	return apijson.UnmarshalRoot(data, r)
-}
-
-func (r toolSourceAuthNoToolSourceAuthJSON) RawJSON() string {
-	return r.raw
-}
-
-func (r ToolSourceAuthNoToolSourceAuth) implementsToolSourceAuth() {}
-
-type ToolSourceAuthNoToolSourceAuthKind string
-
-const (
-	ToolSourceAuthNoToolSourceAuthKindNone ToolSourceAuthNoToolSourceAuthKind = "none"
-)
-
-func (r ToolSourceAuthNoToolSourceAuthKind) IsKnown() bool {
-	switch r {
-	case ToolSourceAuthNoToolSourceAuthKindNone:
-		return true
-	}
-	return false
-}
-
-type ToolSourceAuthAPIKeyToolSourceAuth struct {
-	ConnectionID string `json:"connectionId" api:"required"`
-	// Where an API key or OAuth access token should be injected into outgoing
-	// tool-source requests.
-	Inject AuthInjection                          `json:"inject" api:"required"`
-	Kind   ToolSourceAuthAPIKeyToolSourceAuthKind `json:"kind" api:"required"`
-	JSON   toolSourceAuthAPIKeyToolSourceAuthJSON `json:"-"`
-}
-
-// toolSourceAuthAPIKeyToolSourceAuthJSON contains the JSON metadata for the struct
-// [ToolSourceAuthAPIKeyToolSourceAuth]
-type toolSourceAuthAPIKeyToolSourceAuthJSON struct {
-	ConnectionID apijson.Field
-	Inject       apijson.Field
-	Kind         apijson.Field
-	raw          string
-	ExtraFields  map[string]apijson.Field
-}
-
-func (r *ToolSourceAuthAPIKeyToolSourceAuth) UnmarshalJSON(data []byte) (err error) {
-	return apijson.UnmarshalRoot(data, r)
-}
-
-func (r toolSourceAuthAPIKeyToolSourceAuthJSON) RawJSON() string {
-	return r.raw
-}
-
-func (r ToolSourceAuthAPIKeyToolSourceAuth) implementsToolSourceAuth() {}
-
-type ToolSourceAuthAPIKeyToolSourceAuthKind string
-
-const (
-	ToolSourceAuthAPIKeyToolSourceAuthKindAPIKey ToolSourceAuthAPIKeyToolSourceAuthKind = "api_key"
-)
-
-func (r ToolSourceAuthAPIKeyToolSourceAuthKind) IsKnown() bool {
-	switch r {
-	case ToolSourceAuthAPIKeyToolSourceAuthKindAPIKey:
-		return true
-	}
-	return false
-}
-
-type ToolSourceAuthOAuthExchangeToolSourceAuth struct {
-	// Source-owned OAuth exchange configuration. Public schemas use connection IDs for
-	// stored client secrets and assertions.
-	Exchange OAuthExchangeConfig `json:"exchange" api:"required"`
-	// Where an API key or OAuth access token should be injected into outgoing
-	// tool-source requests.
-	Inject AuthInjection                                 `json:"inject" api:"required"`
-	Kind   ToolSourceAuthOAuthExchangeToolSourceAuthKind `json:"kind" api:"required"`
-	JSON   toolSourceAuthOAuthExchangeToolSourceAuthJSON `json:"-"`
-}
-
-// toolSourceAuthOAuthExchangeToolSourceAuthJSON contains the JSON metadata for the
-// struct [ToolSourceAuthOAuthExchangeToolSourceAuth]
-type toolSourceAuthOAuthExchangeToolSourceAuthJSON struct {
-	Exchange    apijson.Field
-	Inject      apijson.Field
-	Kind        apijson.Field
-	raw         string
-	ExtraFields map[string]apijson.Field
-}
-
-func (r *ToolSourceAuthOAuthExchangeToolSourceAuth) UnmarshalJSON(data []byte) (err error) {
-	return apijson.UnmarshalRoot(data, r)
-}
-
-func (r toolSourceAuthOAuthExchangeToolSourceAuthJSON) RawJSON() string {
-	return r.raw
-}
-
-func (r ToolSourceAuthOAuthExchangeToolSourceAuth) implementsToolSourceAuth() {}
-
-type ToolSourceAuthOAuthExchangeToolSourceAuthKind string
-
-const (
-	ToolSourceAuthOAuthExchangeToolSourceAuthKindOAuthExchange ToolSourceAuthOAuthExchangeToolSourceAuthKind = "oauth_exchange"
-)
-
-func (r ToolSourceAuthOAuthExchangeToolSourceAuthKind) IsKnown() bool {
-	switch r {
-	case ToolSourceAuthOAuthExchangeToolSourceAuthKindOAuthExchange:
-		return true
-	}
-	return false
-}
-
-type ToolSourceAuthOAuthConnectionToolSourceAuth struct {
-	Kind     ToolSourceAuthOAuthConnectionToolSourceAuthKind `json:"kind" api:"required"`
-	Provider string                                          `json:"provider" api:"required"`
-	// Where an API key or OAuth access token should be injected into outgoing
-	// tool-source requests.
-	Inject         AuthInjection                                   `json:"inject"`
-	RequiredScopes []string                                        `json:"requiredScopes"`
-	JSON           toolSourceAuthOAuthConnectionToolSourceAuthJSON `json:"-"`
-}
-
-// toolSourceAuthOAuthConnectionToolSourceAuthJSON contains the JSON metadata for
-// the struct [ToolSourceAuthOAuthConnectionToolSourceAuth]
-type toolSourceAuthOAuthConnectionToolSourceAuthJSON struct {
-	Kind           apijson.Field
-	Provider       apijson.Field
-	Inject         apijson.Field
-	RequiredScopes apijson.Field
-	raw            string
-	ExtraFields    map[string]apijson.Field
-}
-
-func (r *ToolSourceAuthOAuthConnectionToolSourceAuth) UnmarshalJSON(data []byte) (err error) {
-	return apijson.UnmarshalRoot(data, r)
-}
-
-func (r toolSourceAuthOAuthConnectionToolSourceAuthJSON) RawJSON() string {
-	return r.raw
-}
-
-func (r ToolSourceAuthOAuthConnectionToolSourceAuth) implementsToolSourceAuth() {}
-
-type ToolSourceAuthOAuthConnectionToolSourceAuthKind string
-
-const (
-	ToolSourceAuthOAuthConnectionToolSourceAuthKindOAuthConnection ToolSourceAuthOAuthConnectionToolSourceAuthKind = "oauth_connection"
-)
-
-func (r ToolSourceAuthOAuthConnectionToolSourceAuthKind) IsKnown() bool {
-	switch r {
-	case ToolSourceAuthOAuthConnectionToolSourceAuthKindOAuthConnection:
-		return true
-	}
-	return false
 }
 
 type ToolSourceAuthKind string
@@ -1441,83 +1493,27 @@ func (r ToolSourceAuthParam) implementsToolSourceAuthUnionParam() {}
 // Tool source authentication configuration. The `kind` field selects one of
 // `none`, `api_key`, `oauth_exchange`, or `oauth_connection`.
 //
-// Satisfied by [ToolSourceAuthNoToolSourceAuthParam],
-// [ToolSourceAuthAPIKeyToolSourceAuthParam],
-// [ToolSourceAuthOAuthExchangeToolSourceAuthParam],
-// [ToolSourceAuthOAuthConnectionToolSourceAuthParam], [ToolSourceAuthParam].
+// Satisfied by [NoToolSourceAuthParam], [APIKeyToolSourceAuthParam],
+// [OAuthExchangeToolSourceAuthParam], [OAuthConnectionToolSourceAuthParam],
+// [ToolSourceAuthParam].
 type ToolSourceAuthUnionParam interface {
 	implementsToolSourceAuthUnionParam()
 }
 
-type ToolSourceAuthNoToolSourceAuthParam struct {
-	Kind param.Field[ToolSourceAuthNoToolSourceAuthKind] `json:"kind" api:"required"`
-}
-
-func (r ToolSourceAuthNoToolSourceAuthParam) MarshalJSON() (data []byte, err error) {
-	return apijson.MarshalRoot(r)
-}
-
-func (r ToolSourceAuthNoToolSourceAuthParam) implementsToolSourceAuthUnionParam() {}
-
-type ToolSourceAuthAPIKeyToolSourceAuthParam struct {
-	ConnectionID param.Field[string] `json:"connectionId" api:"required"`
-	// Where an API key or OAuth access token should be injected into outgoing
-	// tool-source requests.
-	Inject param.Field[AuthInjectionUnionParam]                `json:"inject" api:"required"`
-	Kind   param.Field[ToolSourceAuthAPIKeyToolSourceAuthKind] `json:"kind" api:"required"`
-}
-
-func (r ToolSourceAuthAPIKeyToolSourceAuthParam) MarshalJSON() (data []byte, err error) {
-	return apijson.MarshalRoot(r)
-}
-
-func (r ToolSourceAuthAPIKeyToolSourceAuthParam) implementsToolSourceAuthUnionParam() {}
-
-type ToolSourceAuthOAuthExchangeToolSourceAuthParam struct {
-	// Source-owned OAuth exchange configuration. Public schemas use connection IDs for
-	// stored client secrets and assertions.
-	Exchange param.Field[OAuthExchangeConfigUnionParam] `json:"exchange" api:"required"`
-	// Where an API key or OAuth access token should be injected into outgoing
-	// tool-source requests.
-	Inject param.Field[AuthInjectionUnionParam]                       `json:"inject" api:"required"`
-	Kind   param.Field[ToolSourceAuthOAuthExchangeToolSourceAuthKind] `json:"kind" api:"required"`
-}
-
-func (r ToolSourceAuthOAuthExchangeToolSourceAuthParam) MarshalJSON() (data []byte, err error) {
-	return apijson.MarshalRoot(r)
-}
-
-func (r ToolSourceAuthOAuthExchangeToolSourceAuthParam) implementsToolSourceAuthUnionParam() {}
-
-type ToolSourceAuthOAuthConnectionToolSourceAuthParam struct {
-	Kind     param.Field[ToolSourceAuthOAuthConnectionToolSourceAuthKind] `json:"kind" api:"required"`
-	Provider param.Field[string]                                          `json:"provider" api:"required"`
-	// Where an API key or OAuth access token should be injected into outgoing
-	// tool-source requests.
-	Inject         param.Field[AuthInjectionUnionParam] `json:"inject"`
-	RequiredScopes param.Field[[]string]                `json:"requiredScopes"`
-}
-
-func (r ToolSourceAuthOAuthConnectionToolSourceAuthParam) MarshalJSON() (data []byte, err error) {
-	return apijson.MarshalRoot(r)
-}
-
-func (r ToolSourceAuthOAuthConnectionToolSourceAuthParam) implementsToolSourceAuthUnionParam() {}
-
 type ToolNewParams struct {
-	Tool ToolNewParamsToolUnion `json:"tool" api:"required"`
+	Body ToolNewParamsBodyUnion `json:"body" api:"required"`
 }
 
 func (r ToolNewParams) MarshalJSON() (data []byte, err error) {
-	return apijson.MarshalRoot(r.Tool)
+	return apijson.MarshalRoot(r.Body)
 }
 
-type ToolNewParamsTool struct {
+type ToolNewParamsBody struct {
 	// Tool source authentication configuration. The `kind` field selects one of
 	// `none`, `api_key`, `oauth_exchange`, or `oauth_connection`.
 	Auth      param.Field[ToolSourceAuthUnionParam] `json:"auth" api:"required"`
 	Namespace param.Field[string]                   `json:"namespace" api:"required"`
-	Type      param.Field[ToolNewParamsToolType]    `json:"type" api:"required"`
+	Type      param.Field[ToolNewParamsBodyType]    `json:"type" api:"required"`
 	Approval  param.Field[ToolApprovalMode]         `json:"approval"`
 	Enabled   param.Field[bool]                     `json:"enabled"`
 	Execution param.Field[interface{}]              `json:"execution"`
@@ -1525,25 +1521,25 @@ type ToolNewParamsTool struct {
 	URL       param.Field[string]                   `json:"url"`
 }
 
-func (r ToolNewParamsTool) MarshalJSON() (data []byte, err error) {
+func (r ToolNewParamsBody) MarshalJSON() (data []byte, err error) {
 	return apijson.MarshalRoot(r)
 }
 
-func (r ToolNewParamsTool) implementsToolNewParamsToolUnion() {}
+func (r ToolNewParamsBody) implementsToolNewParamsBodyUnion() {}
 
-// Satisfied by [ToolNewParamsToolCreateHTTPToolSourceRequest],
-// [ToolNewParamsToolCreateMcpToolSourceRequest], [ToolNewParamsTool].
-type ToolNewParamsToolUnion interface {
-	implementsToolNewParamsToolUnion()
+// Satisfied by [ToolNewParamsBodyCreateHTTPToolSourceRequest],
+// [ToolNewParamsBodyCreateMcpToolSourceRequest], [ToolNewParamsBody].
+type ToolNewParamsBodyUnion interface {
+	implementsToolNewParamsBodyUnion()
 }
 
-type ToolNewParamsToolCreateHTTPToolSourceRequest struct {
+type ToolNewParamsBodyCreateHTTPToolSourceRequest struct {
 	// Tool source authentication configuration. The `kind` field selects one of
 	// `none`, `api_key`, `oauth_exchange`, or `oauth_connection`.
 	Auth      param.Field[ToolSourceAuthUnionParam]                         `json:"auth" api:"required"`
 	Namespace param.Field[string]                                           `json:"namespace" api:"required"`
 	Tools     param.Field[[]HTTPToolDefinitionParam]                        `json:"tools" api:"required"`
-	Type      param.Field[ToolNewParamsToolCreateHTTPToolSourceRequestType] `json:"type" api:"required"`
+	Type      param.Field[ToolNewParamsBodyCreateHTTPToolSourceRequestType] `json:"type" api:"required"`
 	Approval  param.Field[ToolApprovalMode]                                 `json:"approval"`
 	Enabled   param.Field[bool]                                             `json:"enabled"`
 	// HTTP tool execution retry and timeout policy.
@@ -1551,32 +1547,32 @@ type ToolNewParamsToolCreateHTTPToolSourceRequest struct {
 	ExtraFields map[string]interface{}                    `json:"-,extras"`
 }
 
-func (r ToolNewParamsToolCreateHTTPToolSourceRequest) MarshalJSON() (data []byte, err error) {
+func (r ToolNewParamsBodyCreateHTTPToolSourceRequest) MarshalJSON() (data []byte, err error) {
 	return apijson.MarshalRoot(r)
 }
 
-func (r ToolNewParamsToolCreateHTTPToolSourceRequest) implementsToolNewParamsToolUnion() {}
+func (r ToolNewParamsBodyCreateHTTPToolSourceRequest) implementsToolNewParamsBodyUnion() {}
 
-type ToolNewParamsToolCreateHTTPToolSourceRequestType string
+type ToolNewParamsBodyCreateHTTPToolSourceRequestType string
 
 const (
-	ToolNewParamsToolCreateHTTPToolSourceRequestTypeHTTP ToolNewParamsToolCreateHTTPToolSourceRequestType = "http"
+	ToolNewParamsBodyCreateHTTPToolSourceRequestTypeHTTP ToolNewParamsBodyCreateHTTPToolSourceRequestType = "http"
 )
 
-func (r ToolNewParamsToolCreateHTTPToolSourceRequestType) IsKnown() bool {
+func (r ToolNewParamsBodyCreateHTTPToolSourceRequestType) IsKnown() bool {
 	switch r {
-	case ToolNewParamsToolCreateHTTPToolSourceRequestTypeHTTP:
+	case ToolNewParamsBodyCreateHTTPToolSourceRequestTypeHTTP:
 		return true
 	}
 	return false
 }
 
-type ToolNewParamsToolCreateMcpToolSourceRequest struct {
+type ToolNewParamsBodyCreateMcpToolSourceRequest struct {
 	// Tool source authentication configuration. The `kind` field selects one of
 	// `none`, `api_key`, `oauth_exchange`, or `oauth_connection`.
 	Auth      param.Field[ToolSourceAuthUnionParam]                        `json:"auth" api:"required"`
 	Namespace param.Field[string]                                          `json:"namespace" api:"required"`
-	Type      param.Field[ToolNewParamsToolCreateMcpToolSourceRequestType] `json:"type" api:"required"`
+	Type      param.Field[ToolNewParamsBodyCreateMcpToolSourceRequestType] `json:"type" api:"required"`
 	URL       param.Field[string]                                          `json:"url" api:"required"`
 	Approval  param.Field[ToolApprovalMode]                                `json:"approval"`
 	Enabled   param.Field[bool]                                            `json:"enabled"`
@@ -1585,55 +1581,55 @@ type ToolNewParamsToolCreateMcpToolSourceRequest struct {
 	ExtraFields map[string]interface{}                   `json:"-,extras"`
 }
 
-func (r ToolNewParamsToolCreateMcpToolSourceRequest) MarshalJSON() (data []byte, err error) {
+func (r ToolNewParamsBodyCreateMcpToolSourceRequest) MarshalJSON() (data []byte, err error) {
 	return apijson.MarshalRoot(r)
 }
 
-func (r ToolNewParamsToolCreateMcpToolSourceRequest) implementsToolNewParamsToolUnion() {}
+func (r ToolNewParamsBodyCreateMcpToolSourceRequest) implementsToolNewParamsBodyUnion() {}
 
-type ToolNewParamsToolCreateMcpToolSourceRequestType string
+type ToolNewParamsBodyCreateMcpToolSourceRequestType string
 
 const (
-	ToolNewParamsToolCreateMcpToolSourceRequestTypeMcp ToolNewParamsToolCreateMcpToolSourceRequestType = "mcp"
+	ToolNewParamsBodyCreateMcpToolSourceRequestTypeMcp ToolNewParamsBodyCreateMcpToolSourceRequestType = "mcp"
 )
 
-func (r ToolNewParamsToolCreateMcpToolSourceRequestType) IsKnown() bool {
+func (r ToolNewParamsBodyCreateMcpToolSourceRequestType) IsKnown() bool {
 	switch r {
-	case ToolNewParamsToolCreateMcpToolSourceRequestTypeMcp:
+	case ToolNewParamsBodyCreateMcpToolSourceRequestTypeMcp:
 		return true
 	}
 	return false
 }
 
-type ToolNewParamsToolType string
+type ToolNewParamsBodyType string
 
 const (
-	ToolNewParamsToolTypeHTTP ToolNewParamsToolType = "http"
-	ToolNewParamsToolTypeMcp  ToolNewParamsToolType = "mcp"
+	ToolNewParamsBodyTypeHTTP ToolNewParamsBodyType = "http"
+	ToolNewParamsBodyTypeMcp  ToolNewParamsBodyType = "mcp"
 )
 
-func (r ToolNewParamsToolType) IsKnown() bool {
+func (r ToolNewParamsBodyType) IsKnown() bool {
 	switch r {
-	case ToolNewParamsToolTypeHTTP, ToolNewParamsToolTypeMcp:
+	case ToolNewParamsBodyTypeHTTP, ToolNewParamsBodyTypeMcp:
 		return true
 	}
 	return false
 }
 
 type ToolUpdateParams struct {
-	Tool ToolUpdateParamsToolUnion `json:"tool" api:"required"`
+	Body ToolUpdateParamsBodyUnion `json:"body" api:"required"`
 }
 
 func (r ToolUpdateParams) MarshalJSON() (data []byte, err error) {
-	return apijson.MarshalRoot(r.Tool)
+	return apijson.MarshalRoot(r.Body)
 }
 
-type ToolUpdateParamsTool struct {
+type ToolUpdateParamsBody struct {
 	// Tool source authentication configuration. The `kind` field selects one of
 	// `none`, `api_key`, `oauth_exchange`, or `oauth_connection`.
 	Auth      param.Field[ToolSourceAuthUnionParam] `json:"auth" api:"required"`
 	Namespace param.Field[string]                   `json:"namespace" api:"required"`
-	Type      param.Field[ToolUpdateParamsToolType] `json:"type" api:"required"`
+	Type      param.Field[ToolUpdateParamsBodyType] `json:"type" api:"required"`
 	Approval  param.Field[ToolApprovalMode]         `json:"approval"`
 	Enabled   param.Field[bool]                     `json:"enabled"`
 	Execution param.Field[interface{}]              `json:"execution"`
@@ -1641,25 +1637,25 @@ type ToolUpdateParamsTool struct {
 	URL       param.Field[string]                   `json:"url"`
 }
 
-func (r ToolUpdateParamsTool) MarshalJSON() (data []byte, err error) {
+func (r ToolUpdateParamsBody) MarshalJSON() (data []byte, err error) {
 	return apijson.MarshalRoot(r)
 }
 
-func (r ToolUpdateParamsTool) implementsToolUpdateParamsToolUnion() {}
+func (r ToolUpdateParamsBody) implementsToolUpdateParamsBodyUnion() {}
 
-// Satisfied by [ToolUpdateParamsToolUpdateHTTPToolSourceRequest],
-// [ToolUpdateParamsToolUpdateMcpToolSourceRequest], [ToolUpdateParamsTool].
-type ToolUpdateParamsToolUnion interface {
-	implementsToolUpdateParamsToolUnion()
+// Satisfied by [ToolUpdateParamsBodyUpdateHTTPToolSourceRequest],
+// [ToolUpdateParamsBodyUpdateMcpToolSourceRequest], [ToolUpdateParamsBody].
+type ToolUpdateParamsBodyUnion interface {
+	implementsToolUpdateParamsBodyUnion()
 }
 
-type ToolUpdateParamsToolUpdateHTTPToolSourceRequest struct {
+type ToolUpdateParamsBodyUpdateHTTPToolSourceRequest struct {
 	// Tool source authentication configuration. The `kind` field selects one of
 	// `none`, `api_key`, `oauth_exchange`, or `oauth_connection`.
 	Auth      param.Field[ToolSourceAuthUnionParam]                            `json:"auth" api:"required"`
 	Namespace param.Field[string]                                              `json:"namespace" api:"required"`
 	Tools     param.Field[[]HTTPToolDefinitionParam]                           `json:"tools" api:"required"`
-	Type      param.Field[ToolUpdateParamsToolUpdateHTTPToolSourceRequestType] `json:"type" api:"required"`
+	Type      param.Field[ToolUpdateParamsBodyUpdateHTTPToolSourceRequestType] `json:"type" api:"required"`
 	Approval  param.Field[ToolApprovalMode]                                    `json:"approval"`
 	Enabled   param.Field[bool]                                                `json:"enabled"`
 	// HTTP tool execution retry and timeout policy.
@@ -1667,32 +1663,32 @@ type ToolUpdateParamsToolUpdateHTTPToolSourceRequest struct {
 	ExtraFields map[string]interface{}                    `json:"-,extras"`
 }
 
-func (r ToolUpdateParamsToolUpdateHTTPToolSourceRequest) MarshalJSON() (data []byte, err error) {
+func (r ToolUpdateParamsBodyUpdateHTTPToolSourceRequest) MarshalJSON() (data []byte, err error) {
 	return apijson.MarshalRoot(r)
 }
 
-func (r ToolUpdateParamsToolUpdateHTTPToolSourceRequest) implementsToolUpdateParamsToolUnion() {}
+func (r ToolUpdateParamsBodyUpdateHTTPToolSourceRequest) implementsToolUpdateParamsBodyUnion() {}
 
-type ToolUpdateParamsToolUpdateHTTPToolSourceRequestType string
+type ToolUpdateParamsBodyUpdateHTTPToolSourceRequestType string
 
 const (
-	ToolUpdateParamsToolUpdateHTTPToolSourceRequestTypeHTTP ToolUpdateParamsToolUpdateHTTPToolSourceRequestType = "http"
+	ToolUpdateParamsBodyUpdateHTTPToolSourceRequestTypeHTTP ToolUpdateParamsBodyUpdateHTTPToolSourceRequestType = "http"
 )
 
-func (r ToolUpdateParamsToolUpdateHTTPToolSourceRequestType) IsKnown() bool {
+func (r ToolUpdateParamsBodyUpdateHTTPToolSourceRequestType) IsKnown() bool {
 	switch r {
-	case ToolUpdateParamsToolUpdateHTTPToolSourceRequestTypeHTTP:
+	case ToolUpdateParamsBodyUpdateHTTPToolSourceRequestTypeHTTP:
 		return true
 	}
 	return false
 }
 
-type ToolUpdateParamsToolUpdateMcpToolSourceRequest struct {
+type ToolUpdateParamsBodyUpdateMcpToolSourceRequest struct {
 	// Tool source authentication configuration. The `kind` field selects one of
 	// `none`, `api_key`, `oauth_exchange`, or `oauth_connection`.
 	Auth      param.Field[ToolSourceAuthUnionParam]                           `json:"auth" api:"required"`
 	Namespace param.Field[string]                                             `json:"namespace" api:"required"`
-	Type      param.Field[ToolUpdateParamsToolUpdateMcpToolSourceRequestType] `json:"type" api:"required"`
+	Type      param.Field[ToolUpdateParamsBodyUpdateMcpToolSourceRequestType] `json:"type" api:"required"`
 	URL       param.Field[string]                                             `json:"url" api:"required"`
 	Approval  param.Field[ToolApprovalMode]                                   `json:"approval"`
 	Enabled   param.Field[bool]                                               `json:"enabled"`
@@ -1701,36 +1697,36 @@ type ToolUpdateParamsToolUpdateMcpToolSourceRequest struct {
 	ExtraFields map[string]interface{}                   `json:"-,extras"`
 }
 
-func (r ToolUpdateParamsToolUpdateMcpToolSourceRequest) MarshalJSON() (data []byte, err error) {
+func (r ToolUpdateParamsBodyUpdateMcpToolSourceRequest) MarshalJSON() (data []byte, err error) {
 	return apijson.MarshalRoot(r)
 }
 
-func (r ToolUpdateParamsToolUpdateMcpToolSourceRequest) implementsToolUpdateParamsToolUnion() {}
+func (r ToolUpdateParamsBodyUpdateMcpToolSourceRequest) implementsToolUpdateParamsBodyUnion() {}
 
-type ToolUpdateParamsToolUpdateMcpToolSourceRequestType string
+type ToolUpdateParamsBodyUpdateMcpToolSourceRequestType string
 
 const (
-	ToolUpdateParamsToolUpdateMcpToolSourceRequestTypeMcp ToolUpdateParamsToolUpdateMcpToolSourceRequestType = "mcp"
+	ToolUpdateParamsBodyUpdateMcpToolSourceRequestTypeMcp ToolUpdateParamsBodyUpdateMcpToolSourceRequestType = "mcp"
 )
 
-func (r ToolUpdateParamsToolUpdateMcpToolSourceRequestType) IsKnown() bool {
+func (r ToolUpdateParamsBodyUpdateMcpToolSourceRequestType) IsKnown() bool {
 	switch r {
-	case ToolUpdateParamsToolUpdateMcpToolSourceRequestTypeMcp:
+	case ToolUpdateParamsBodyUpdateMcpToolSourceRequestTypeMcp:
 		return true
 	}
 	return false
 }
 
-type ToolUpdateParamsToolType string
+type ToolUpdateParamsBodyType string
 
 const (
-	ToolUpdateParamsToolTypeHTTP ToolUpdateParamsToolType = "http"
-	ToolUpdateParamsToolTypeMcp  ToolUpdateParamsToolType = "mcp"
+	ToolUpdateParamsBodyTypeHTTP ToolUpdateParamsBodyType = "http"
+	ToolUpdateParamsBodyTypeMcp  ToolUpdateParamsBodyType = "mcp"
 )
 
-func (r ToolUpdateParamsToolType) IsKnown() bool {
+func (r ToolUpdateParamsBodyType) IsKnown() bool {
 	switch r {
-	case ToolUpdateParamsToolTypeHTTP, ToolUpdateParamsToolTypeMcp:
+	case ToolUpdateParamsBodyTypeHTTP, ToolUpdateParamsBodyTypeMcp:
 		return true
 	}
 	return false

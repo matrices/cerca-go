@@ -29,9 +29,9 @@ func TestToolNewWithOptionalParams(t *testing.T) {
 		context.TODO(),
 		"fleet_abc123",
 		cercago.ToolNewParams{
-			Tool: cercago.ToolNewParamsToolCreateHTTPToolSourceRequest{
-				Auth: cercago.F[cercago.ToolSourceAuthUnionParam](cercago.ToolSourceAuthNoToolSourceAuthParam{
-					Kind: cercago.F(cercago.ToolSourceAuthNoToolSourceAuthKindNone),
+			Body: cercago.ToolNewParamsBodyCreateHTTPToolSourceRequest{
+				Auth: cercago.F[cercago.ToolSourceAuthUnionParam](cercago.NoToolSourceAuthParam{
+					Kind: cercago.F(cercago.NoToolSourceAuthKindNone),
 				}),
 				Namespace: cercago.F("docs"),
 				Tools: cercago.F([]cercago.HTTPToolDefinitionParam{{
@@ -65,7 +65,7 @@ func TestToolNewWithOptionalParams(t *testing.T) {
 						Mode: cercago.F(cercago.ResponseNormalizationHintModeAuto),
 					}),
 				}}),
-				Type:     cercago.F(cercago.ToolNewParamsToolCreateHTTPToolSourceRequestTypeHTTP),
+				Type:     cercago.F(cercago.ToolNewParamsBodyCreateHTTPToolSourceRequestTypeHTTP),
 				Approval: cercago.F(cercago.ToolApprovalModeAlways),
 				Enabled:  cercago.F(true),
 				Execution: cercago.F(cercago.HTTPToolExecutionPolicyParam{
@@ -129,9 +129,9 @@ func TestToolUpdateWithOptionalParams(t *testing.T) {
 		"fleet_abc123",
 		"toolsrc_abc123",
 		cercago.ToolUpdateParams{
-			Tool: cercago.ToolUpdateParamsToolUpdateHTTPToolSourceRequest{
-				Auth: cercago.F[cercago.ToolSourceAuthUnionParam](cercago.ToolSourceAuthNoToolSourceAuthParam{
-					Kind: cercago.F(cercago.ToolSourceAuthNoToolSourceAuthKindNone),
+			Body: cercago.ToolUpdateParamsBodyUpdateHTTPToolSourceRequest{
+				Auth: cercago.F[cercago.ToolSourceAuthUnionParam](cercago.NoToolSourceAuthParam{
+					Kind: cercago.F(cercago.NoToolSourceAuthKindNone),
 				}),
 				Namespace: cercago.F("docs"),
 				Tools: cercago.F([]cercago.HTTPToolDefinitionParam{{
@@ -165,7 +165,7 @@ func TestToolUpdateWithOptionalParams(t *testing.T) {
 						Mode: cercago.F(cercago.ResponseNormalizationHintModeAuto),
 					}),
 				}}),
-				Type:     cercago.F(cercago.ToolUpdateParamsToolUpdateHTTPToolSourceRequestTypeHTTP),
+				Type:     cercago.F(cercago.ToolUpdateParamsBodyUpdateHTTPToolSourceRequestTypeHTTP),
 				Approval: cercago.F(cercago.ToolApprovalModeAlways),
 				Enabled:  cercago.F(true),
 				Execution: cercago.F(cercago.HTTPToolExecutionPolicyParam{

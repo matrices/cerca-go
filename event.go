@@ -17,6 +17,7 @@ import (
 	"github.com/matrices/cerca-go/internal/requestconfig"
 	"github.com/matrices/cerca-go/option"
 	"github.com/matrices/cerca-go/packages/pagination"
+	"github.com/matrices/cerca-go/packages/ssestream"
 	"github.com/matrices/cerca-go/shared"
 	"github.com/tidwall/gjson"
 )
@@ -125,54 +126,93 @@ func (r *EventService) ListForThreadAutoPaging(ctx context.Context, agentID stri
 	return pagination.NewEventsCursorPageAutoPager(r.ListForThread(ctx, agentID, threadID, query, opts...))
 }
 
-// WebSocket upgrade endpoint. Set
-// `Sec-WebSocket-Protocol: agent-v1, agent-auth-<API_KEY>` so the runtime can
-// authenticate the stream while preserving the public subprotocol. HTTP clients
-// that cannot upgrade should use `/agents/{agentId}/events` as the polling analog.
-func (r *EventService) SubscribeAgent(ctx context.Context, agentID string, opts ...option.RequestOption) (res *shared.ErrorResponse, err error) {
+// Server-Sent Events stream. Each SSE data frame is JSON matching this response
+// schema.
+func (r *EventService) StreamForAgentStreaming(ctx context.Context, agentID string, params EventStreamForAgentParams, opts ...option.RequestOption) (stream *ssestream.Stream[SubscriptionEvent]) {
+	var (
+		raw *http.Response
+		err error
+	)
+	if params.LastEventID.Present {
+		opts = append(opts, option.WithHeader("Last-Event-ID", fmt.Sprintf("%v", params.LastEventID)))
+	}
 	opts = slices.Concat(r.Options, opts)
+	opts = append([]option.RequestOption{option.WithHeader("Accept", "text/event-stream")}, opts...)
 	if agentID == "" {
 		err = errors.New("missing required agentId parameter")
-		return nil, err
+		return ssestream.NewStream[SubscriptionEvent](nil, err)
 	}
-	path := fmt.Sprintf("agents/%s/events/subscribe", agentID)
-	err = requestconfig.ExecuteNewRequest(ctx, http.MethodGet, path, nil, &res, opts...)
-	return res, err
+	path := fmt.Sprintf("agents/%s/events/stream", agentID)
+	err = requestconfig.ExecuteNewRequest(ctx, http.MethodGet, path, params, &raw, opts...)
+	return ssestream.NewStream[SubscriptionEvent](ssestream.NewDecoder(raw), err)
 }
 
-// WebSocket upgrade endpoint. Set
-// `Sec-WebSocket-Protocol: agent-v1, agent-auth-<API_KEY>` so the runtime can
-// authenticate the stream while preserving the public subprotocol. HTTP clients
-// that cannot upgrade should use `/fleets/{fleetId}/events` as the polling analog.
-func (r *EventService) SubscribeFleet(ctx context.Context, fleetID string, opts ...option.RequestOption) (res *shared.ErrorResponse, err error) {
+// Server-Sent Events stream. Each SSE data frame is JSON matching this response
+// schema.
+func (r *EventService) StreamForFleetStreaming(ctx context.Context, fleetID string, params EventStreamForFleetParams, opts ...option.RequestOption) (stream *ssestream.Stream[SubscriptionEvent]) {
+	var (
+		raw *http.Response
+		err error
+	)
+	if params.LastEventID.Present {
+		opts = append(opts, option.WithHeader("Last-Event-ID", fmt.Sprintf("%v", params.LastEventID)))
+	}
 	opts = slices.Concat(r.Options, opts)
+	opts = append([]option.RequestOption{option.WithHeader("Accept", "text/event-stream")}, opts...)
 	if fleetID == "" {
 		err = errors.New("missing required fleetId parameter")
-		return nil, err
+		return ssestream.NewStream[SubscriptionEvent](nil, err)
 	}
-	path := fmt.Sprintf("fleets/%s/events/subscribe", fleetID)
-	err = requestconfig.ExecuteNewRequest(ctx, http.MethodGet, path, nil, &res, opts...)
-	return res, err
+	path := fmt.Sprintf("fleets/%s/events/stream", fleetID)
+	err = requestconfig.ExecuteNewRequest(ctx, http.MethodGet, path, params, &raw, opts...)
+	return ssestream.NewStream[SubscriptionEvent](ssestream.NewDecoder(raw), err)
 }
 
-// WebSocket upgrade endpoint. Set
-// `Sec-WebSocket-Protocol: agent-v1, agent-auth-<API_KEY>` so the runtime can
-// authenticate the stream while preserving the public subprotocol. HTTP clients
-// that cannot upgrade should use `/agents/{agentId}/threads/{threadId}/events` as
-// the polling analog.
-func (r *EventService) SubscribeThread(ctx context.Context, agentID string, threadID string, opts ...option.RequestOption) (res *shared.ErrorResponse, err error) {
+// Server-Sent Events stream. Each SSE data frame is JSON matching this response
+// schema.
+func (r *EventService) StreamForThreadStreaming(ctx context.Context, agentID string, threadID string, opts ...option.RequestOption) (stream *ssestream.Stream[ThreadStreamEvent]) {
+	var (
+		raw *http.Response
+		err error
+	)
 	opts = slices.Concat(r.Options, opts)
+	opts = append([]option.RequestOption{option.WithHeader("Accept", "text/event-stream")}, opts...)
 	if agentID == "" {
 		err = errors.New("missing required agentId parameter")
-		return nil, err
+		return ssestream.NewStream[ThreadStreamEvent](nil, err)
 	}
 	if threadID == "" {
 		err = errors.New("missing required threadId parameter")
-		return nil, err
+		return ssestream.NewStream[ThreadStreamEvent](nil, err)
 	}
-	path := fmt.Sprintf("agents/%s/threads/%s/events/subscribe", agentID, threadID)
-	err = requestconfig.ExecuteNewRequest(ctx, http.MethodGet, path, nil, &res, opts...)
-	return res, err
+	path := fmt.Sprintf("agents/%s/threads/%s/stream", agentID, threadID)
+	err = requestconfig.ExecuteNewRequest(ctx, http.MethodGet, path, nil, &raw, opts...)
+	return ssestream.NewStream[ThreadStreamEvent](ssestream.NewDecoder(raw), err)
+}
+
+// Server-Sent Events stream. Each SSE data frame is JSON matching this response
+// schema.
+func (r *EventService) StreamForThreadEventsStreaming(ctx context.Context, agentID string, threadID string, params EventStreamForThreadEventsParams, opts ...option.RequestOption) (stream *ssestream.Stream[SubscriptionEvent]) {
+	var (
+		raw *http.Response
+		err error
+	)
+	if params.LastEventID.Present {
+		opts = append(opts, option.WithHeader("Last-Event-ID", fmt.Sprintf("%v", params.LastEventID)))
+	}
+	opts = slices.Concat(r.Options, opts)
+	opts = append([]option.RequestOption{option.WithHeader("Accept", "text/event-stream")}, opts...)
+	if agentID == "" {
+		err = errors.New("missing required agentId parameter")
+		return ssestream.NewStream[SubscriptionEvent](nil, err)
+	}
+	if threadID == "" {
+		err = errors.New("missing required threadId parameter")
+		return ssestream.NewStream[SubscriptionEvent](nil, err)
+	}
+	path := fmt.Sprintf("agents/%s/threads/%s/events/stream", agentID, threadID)
+	err = requestconfig.ExecuteNewRequest(ctx, http.MethodGet, path, params, &raw, opts...)
+	return ssestream.NewStream[SubscriptionEvent](ssestream.NewDecoder(raw), err)
 }
 
 type RuntimeWebhookEvent struct {
@@ -2219,6 +2259,1247 @@ func (r subscriptionEventJSON) RawJSON() string {
 	return r.raw
 }
 
+type ThreadStreamEvent struct {
+	EventSeq float64               `json:"eventSeq" api:"required"`
+	TurnID   string                `json:"turnId" api:"required"`
+	Type     ThreadStreamEventType `json:"type" api:"required"`
+	// This field can have the runtime type of
+	// [ThreadStreamEventThreadStreamApprovalRequestedMessageApproval].
+	Approval               interface{}               `json:"approval"`
+	ApprovalID             string                    `json:"approvalId"`
+	CumulativeInputTokens  float64                   `json:"cumulativeInputTokens"`
+	CumulativeOutputTokens float64                   `json:"cumulativeOutputTokens"`
+	Decision               ThreadStreamEventDecision `json:"decision"`
+	DurationMs             float64                   `json:"durationMs"`
+	Error                  string                    `json:"error" api:"nullable"`
+	InputTokens            float64                   `json:"inputTokens"`
+	IsError                bool                      `json:"isError"`
+	ItemID                 string                    `json:"itemId"`
+	ItemType               ThreadStreamEventItemType `json:"itemType"`
+	// This field can have the runtime type of
+	// [ThreadStreamEventThreadStreamContentMessageMessage].
+	Message           interface{} `json:"message"`
+	MessageCount      float64     `json:"messageCount"`
+	OutputTokens      float64     `json:"outputTokens"`
+	RequestedToolName string      `json:"requestedToolName"`
+	Result            string      `json:"result" api:"nullable"`
+	// `idle` threads can accept a new turn or be closed. `running` threads have an
+	// active turn. `awaiting` threads are paused on external input such as approvals.
+	// `closed` threads are terminal.
+	Status      Status                `json:"status"`
+	StepCount   float64               `json:"stepCount"`
+	StepSeq     float64               `json:"stepSeq"`
+	SubThreadID string                `json:"subThreadId"`
+	ToolName    shared.ToolName       `json:"toolName"`
+	TurnSeq     float64               `json:"turnSeq"`
+	JSON        threadStreamEventJSON `json:"-"`
+	union       ThreadStreamEventUnion
+}
+
+// threadStreamEventJSON contains the JSON metadata for the struct
+// [ThreadStreamEvent]
+type threadStreamEventJSON struct {
+	EventSeq               apijson.Field
+	TurnID                 apijson.Field
+	Type                   apijson.Field
+	Approval               apijson.Field
+	ApprovalID             apijson.Field
+	CumulativeInputTokens  apijson.Field
+	CumulativeOutputTokens apijson.Field
+	Decision               apijson.Field
+	DurationMs             apijson.Field
+	Error                  apijson.Field
+	InputTokens            apijson.Field
+	IsError                apijson.Field
+	ItemID                 apijson.Field
+	ItemType               apijson.Field
+	Message                apijson.Field
+	MessageCount           apijson.Field
+	OutputTokens           apijson.Field
+	RequestedToolName      apijson.Field
+	Result                 apijson.Field
+	Status                 apijson.Field
+	StepCount              apijson.Field
+	StepSeq                apijson.Field
+	SubThreadID            apijson.Field
+	ToolName               apijson.Field
+	TurnSeq                apijson.Field
+	raw                    string
+	ExtraFields            map[string]apijson.Field
+}
+
+func (r threadStreamEventJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r *ThreadStreamEvent) UnmarshalJSON(data []byte) (err error) {
+	*r = ThreadStreamEvent{}
+	err = apijson.UnmarshalRoot(data, &r.union)
+	if err != nil {
+		return err
+	}
+	return apijson.Port(r.union, &r)
+}
+
+// AsUnion returns a [ThreadStreamEventUnion] interface which you can cast to the
+// specific types for more type safety.
+//
+// Possible runtime types of the union are
+// [ThreadStreamEventThreadStreamStatusMessage],
+// [ThreadStreamEventThreadStreamContentMessage],
+// [ThreadStreamEventThreadStreamProgressMessage],
+// [ThreadStreamEventThreadStreamTurnStartedMessage],
+// [ThreadStreamEventThreadStreamTurnCompletedMessage],
+// [ThreadStreamEventThreadStreamItemStartedMessage],
+// [ThreadStreamEventThreadStreamItemCompletedMessage],
+// [ThreadStreamEventThreadStreamTokenUsageMessage],
+// [ThreadStreamEventThreadStreamApprovalRequestedMessage],
+// [ThreadStreamEventThreadStreamApprovalResolvedMessage].
+func (r ThreadStreamEvent) AsUnion() ThreadStreamEventUnion {
+	return r.union
+}
+
+// Union satisfied by [ThreadStreamEventThreadStreamStatusMessage],
+// [ThreadStreamEventThreadStreamContentMessage],
+// [ThreadStreamEventThreadStreamProgressMessage],
+// [ThreadStreamEventThreadStreamTurnStartedMessage],
+// [ThreadStreamEventThreadStreamTurnCompletedMessage],
+// [ThreadStreamEventThreadStreamItemStartedMessage],
+// [ThreadStreamEventThreadStreamItemCompletedMessage],
+// [ThreadStreamEventThreadStreamTokenUsageMessage],
+// [ThreadStreamEventThreadStreamApprovalRequestedMessage] or
+// [ThreadStreamEventThreadStreamApprovalResolvedMessage].
+type ThreadStreamEventUnion interface {
+	implementsThreadStreamEvent()
+}
+
+func init() {
+	apijson.RegisterUnion(
+		reflect.TypeOf((*ThreadStreamEventUnion)(nil)).Elem(),
+		"type",
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamStatusMessage{}),
+			DiscriminatorValue: "status",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamContentMessage{}),
+			DiscriminatorValue: "message",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamProgressMessage{}),
+			DiscriminatorValue: "progress",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamTurnStartedMessage{}),
+			DiscriminatorValue: "turn/started",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamTurnCompletedMessage{}),
+			DiscriminatorValue: "turn/completed",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamItemStartedMessage{}),
+			DiscriminatorValue: "item/started",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamItemCompletedMessage{}),
+			DiscriminatorValue: "item/completed",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamTokenUsageMessage{}),
+			DiscriminatorValue: "token_usage",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamApprovalRequestedMessage{}),
+			DiscriminatorValue: "approval/requested",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamApprovalResolvedMessage{}),
+			DiscriminatorValue: "approval/resolved",
+		},
+	)
+}
+
+type ThreadStreamEventThreadStreamStatusMessage struct {
+	Error    string  `json:"error" api:"required,nullable"`
+	EventSeq float64 `json:"eventSeq" api:"required"`
+	Result   string  `json:"result" api:"required,nullable"`
+	// `idle` threads can accept a new turn or be closed. `running` threads have an
+	// active turn. `awaiting` threads are paused on external input such as approvals.
+	// `closed` threads are terminal.
+	Status  Status                                         `json:"status" api:"required"`
+	StepSeq float64                                        `json:"stepSeq" api:"required"`
+	TurnID  string                                         `json:"turnId" api:"required"`
+	Type    ThreadStreamEventThreadStreamStatusMessageType `json:"type" api:"required"`
+	JSON    threadStreamEventThreadStreamStatusMessageJSON `json:"-"`
+}
+
+// threadStreamEventThreadStreamStatusMessageJSON contains the JSON metadata for
+// the struct [ThreadStreamEventThreadStreamStatusMessage]
+type threadStreamEventThreadStreamStatusMessageJSON struct {
+	Error       apijson.Field
+	EventSeq    apijson.Field
+	Result      apijson.Field
+	Status      apijson.Field
+	StepSeq     apijson.Field
+	TurnID      apijson.Field
+	Type        apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamStatusMessage) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamStatusMessageJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamStatusMessage) implementsThreadStreamEvent() {}
+
+type ThreadStreamEventThreadStreamStatusMessageType string
+
+const (
+	ThreadStreamEventThreadStreamStatusMessageTypeStatus ThreadStreamEventThreadStreamStatusMessageType = "status"
+)
+
+func (r ThreadStreamEventThreadStreamStatusMessageType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamStatusMessageTypeStatus:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamContentMessage struct {
+	EventSeq float64                                            `json:"eventSeq" api:"required"`
+	Message  ThreadStreamEventThreadStreamContentMessageMessage `json:"message" api:"required"`
+	StepSeq  float64                                            `json:"stepSeq" api:"required"`
+	TurnID   string                                             `json:"turnId" api:"required"`
+	Type     ThreadStreamEventThreadStreamContentMessageType    `json:"type" api:"required"`
+	JSON     threadStreamEventThreadStreamContentMessageJSON    `json:"-"`
+}
+
+// threadStreamEventThreadStreamContentMessageJSON contains the JSON metadata for
+// the struct [ThreadStreamEventThreadStreamContentMessage]
+type threadStreamEventThreadStreamContentMessageJSON struct {
+	EventSeq    apijson.Field
+	Message     apijson.Field
+	StepSeq     apijson.Field
+	TurnID      apijson.Field
+	Type        apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamContentMessage) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamContentMessageJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamContentMessage) implementsThreadStreamEvent() {}
+
+type ThreadStreamEventThreadStreamContentMessageMessage struct {
+	Content   []ThreadStreamEventThreadStreamContentMessageMessageContent `json:"content" api:"required"`
+	CreatedAt string                                                      `json:"createdAt" api:"required"`
+	Role      ThreadStreamEventThreadStreamContentMessageMessageRole      `json:"role" api:"required"`
+	Seq       float64                                                     `json:"seq" api:"required"`
+	JSON      threadStreamEventThreadStreamContentMessageMessageJSON      `json:"-"`
+}
+
+// threadStreamEventThreadStreamContentMessageMessageJSON contains the JSON
+// metadata for the struct [ThreadStreamEventThreadStreamContentMessageMessage]
+type threadStreamEventThreadStreamContentMessageMessageJSON struct {
+	Content     apijson.Field
+	CreatedAt   apijson.Field
+	Role        apijson.Field
+	Seq         apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamContentMessageMessage) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamContentMessageMessageJSON) RawJSON() string {
+	return r.raw
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageContent struct {
+	Type ThreadStreamEventThreadStreamContentMessageMessageContentType `json:"type" api:"required"`
+	ID   string                                                        `json:"id"`
+	// This field can have the runtime type of [string], [interface{}].
+	Content      interface{} `json:"content"`
+	DeniedByUser bool        `json:"deniedByUser"`
+	// JSON-serialized tool input payload. Parse as JSON before reading tool-specific
+	// fields.
+	Input   string          `json:"input"`
+	IsError bool            `json:"isError"`
+	Name    shared.ToolName `json:"name"`
+	// This field can have the runtime type of [map[string]map[string]string].
+	ProviderMetadata interface{}                                                   `json:"providerMetadata"`
+	Text             string                                                        `json:"text"`
+	ToolUseID        string                                                        `json:"toolUseId"`
+	JSON             threadStreamEventThreadStreamContentMessageMessageContentJSON `json:"-"`
+	union            ThreadStreamEventThreadStreamContentMessageMessageContentUnion
+}
+
+// threadStreamEventThreadStreamContentMessageMessageContentJSON contains the JSON
+// metadata for the struct
+// [ThreadStreamEventThreadStreamContentMessageMessageContent]
+type threadStreamEventThreadStreamContentMessageMessageContentJSON struct {
+	Type             apijson.Field
+	ID               apijson.Field
+	Content          apijson.Field
+	DeniedByUser     apijson.Field
+	Input            apijson.Field
+	IsError          apijson.Field
+	Name             apijson.Field
+	ProviderMetadata apijson.Field
+	Text             apijson.Field
+	ToolUseID        apijson.Field
+	raw              string
+	ExtraFields      map[string]apijson.Field
+}
+
+func (r threadStreamEventThreadStreamContentMessageMessageContentJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r *ThreadStreamEventThreadStreamContentMessageMessageContent) UnmarshalJSON(data []byte) (err error) {
+	*r = ThreadStreamEventThreadStreamContentMessageMessageContent{}
+	err = apijson.UnmarshalRoot(data, &r.union)
+	if err != nil {
+		return err
+	}
+	return apijson.Port(r.union, &r)
+}
+
+// AsUnion returns a
+// [ThreadStreamEventThreadStreamContentMessageMessageContentUnion] interface which
+// you can cast to the specific types for more type safety.
+//
+// Possible runtime types of the union are
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlock],
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlock],
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlock],
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlock],
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlock].
+func (r ThreadStreamEventThreadStreamContentMessageMessageContent) AsUnion() ThreadStreamEventThreadStreamContentMessageMessageContentUnion {
+	return r.union
+}
+
+// Union satisfied by
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlock],
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlock],
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlock],
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlock]
+// or
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlock].
+type ThreadStreamEventThreadStreamContentMessageMessageContentUnion interface {
+	implementsThreadStreamEventThreadStreamContentMessageMessageContent()
+}
+
+func init() {
+	apijson.RegisterUnion(
+		reflect.TypeOf((*ThreadStreamEventThreadStreamContentMessageMessageContentUnion)(nil)).Elem(),
+		"type",
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlock{}),
+			DiscriminatorValue: "text",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlock{}),
+			DiscriminatorValue: "tool_use",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlock{}),
+			DiscriminatorValue: "tool_result",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlock{}),
+			DiscriminatorValue: "server_tool_use",
+		},
+		apijson.UnionVariant{
+			TypeFilter:         gjson.JSON,
+			Type:               reflect.TypeOf(ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlock{}),
+			DiscriminatorValue: "web_search_tool_result",
+		},
+	)
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlock struct {
+	Text             string                                                                                    `json:"text" api:"required"`
+	Type             ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlockType `json:"type" api:"required"`
+	ProviderMetadata map[string]map[string]string                                                              `json:"providerMetadata"`
+	JSON             threadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlockJSON `json:"-"`
+}
+
+// threadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlockJSON
+// contains the JSON metadata for the struct
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlock]
+type threadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlockJSON struct {
+	Text             apijson.Field
+	Type             apijson.Field
+	ProviderMetadata apijson.Field
+	raw              string
+	ExtraFields      map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlock) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlockJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlock) implementsThreadStreamEventThreadStreamContentMessageMessageContent() {
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlockType string
+
+const (
+	ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlockTypeText ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlockType = "text"
+)
+
+func (r ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlockType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamTextContentBlockTypeText:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlock struct {
+	ID string `json:"id" api:"required"`
+	// JSON-serialized tool input payload. Parse as JSON before reading tool-specific
+	// fields.
+	Input            string                                                                                       `json:"input" api:"required"`
+	Name             shared.ToolName                                                                              `json:"name" api:"required"`
+	Type             ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlockType `json:"type" api:"required"`
+	ProviderMetadata map[string]map[string]string                                                                 `json:"providerMetadata"`
+	JSON             threadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlockJSON `json:"-"`
+}
+
+// threadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlockJSON
+// contains the JSON metadata for the struct
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlock]
+type threadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlockJSON struct {
+	ID               apijson.Field
+	Input            apijson.Field
+	Name             apijson.Field
+	Type             apijson.Field
+	ProviderMetadata apijson.Field
+	raw              string
+	ExtraFields      map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlock) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlockJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlock) implementsThreadStreamEventThreadStreamContentMessageMessageContent() {
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlockType string
+
+const (
+	ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlockTypeToolUse ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlockType = "tool_use"
+)
+
+func (r ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlockType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolUseContentBlockTypeToolUse:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlock struct {
+	Content          string                                                                                          `json:"content" api:"required"`
+	IsError          bool                                                                                            `json:"isError" api:"required"`
+	ToolUseID        string                                                                                          `json:"toolUseId" api:"required"`
+	Type             ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlockType `json:"type" api:"required"`
+	DeniedByUser     bool                                                                                            `json:"deniedByUser"`
+	ProviderMetadata map[string]map[string]string                                                                    `json:"providerMetadata"`
+	JSON             threadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlockJSON `json:"-"`
+}
+
+// threadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlockJSON
+// contains the JSON metadata for the struct
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlock]
+type threadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlockJSON struct {
+	Content          apijson.Field
+	IsError          apijson.Field
+	ToolUseID        apijson.Field
+	Type             apijson.Field
+	DeniedByUser     apijson.Field
+	ProviderMetadata apijson.Field
+	raw              string
+	ExtraFields      map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlock) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlockJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlock) implementsThreadStreamEventThreadStreamContentMessageMessageContent() {
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlockType string
+
+const (
+	ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlockTypeToolResult ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlockType = "tool_result"
+)
+
+func (r ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlockType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamToolResultContentBlockTypeToolResult:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlock struct {
+	ID string `json:"id" api:"required"`
+	// JSON-serialized tool input payload. Parse as JSON before reading tool-specific
+	// fields.
+	Input            string                                                                                             `json:"input" api:"required"`
+	Name             string                                                                                             `json:"name" api:"required"`
+	Type             ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlockType `json:"type" api:"required"`
+	ProviderMetadata map[string]map[string]string                                                                       `json:"providerMetadata"`
+	JSON             threadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlockJSON `json:"-"`
+}
+
+// threadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlockJSON
+// contains the JSON metadata for the struct
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlock]
+type threadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlockJSON struct {
+	ID               apijson.Field
+	Input            apijson.Field
+	Name             apijson.Field
+	Type             apijson.Field
+	ProviderMetadata apijson.Field
+	raw              string
+	ExtraFields      map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlock) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlockJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlock) implementsThreadStreamEventThreadStreamContentMessageMessageContent() {
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlockType string
+
+const (
+	ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlockTypeServerToolUse ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlockType = "server_tool_use"
+)
+
+func (r ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlockType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamServerToolUseContentBlockTypeServerToolUse:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlock struct {
+	// Web search result payload. The runtime returns either an array of web search
+	// results or an error object.
+	Content   interface{}                                                                                              `json:"content" api:"required"`
+	ToolUseID string                                                                                                   `json:"toolUseId" api:"required"`
+	Type      ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlockType `json:"type" api:"required"`
+	JSON      threadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlockJSON `json:"-"`
+}
+
+// threadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlockJSON
+// contains the JSON metadata for the struct
+// [ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlock]
+type threadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlockJSON struct {
+	Content     apijson.Field
+	ToolUseID   apijson.Field
+	Type        apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlock) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlockJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlock) implementsThreadStreamEventThreadStreamContentMessageMessageContent() {
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlockType string
+
+const (
+	ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlockTypeWebSearchToolResult ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlockType = "web_search_tool_result"
+)
+
+func (r ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlockType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamContentMessageMessageContentThreadStreamWebSearchToolResultContentBlockTypeWebSearchToolResult:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageContentType string
+
+const (
+	ThreadStreamEventThreadStreamContentMessageMessageContentTypeText                ThreadStreamEventThreadStreamContentMessageMessageContentType = "text"
+	ThreadStreamEventThreadStreamContentMessageMessageContentTypeToolUse             ThreadStreamEventThreadStreamContentMessageMessageContentType = "tool_use"
+	ThreadStreamEventThreadStreamContentMessageMessageContentTypeToolResult          ThreadStreamEventThreadStreamContentMessageMessageContentType = "tool_result"
+	ThreadStreamEventThreadStreamContentMessageMessageContentTypeServerToolUse       ThreadStreamEventThreadStreamContentMessageMessageContentType = "server_tool_use"
+	ThreadStreamEventThreadStreamContentMessageMessageContentTypeWebSearchToolResult ThreadStreamEventThreadStreamContentMessageMessageContentType = "web_search_tool_result"
+)
+
+func (r ThreadStreamEventThreadStreamContentMessageMessageContentType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamContentMessageMessageContentTypeText, ThreadStreamEventThreadStreamContentMessageMessageContentTypeToolUse, ThreadStreamEventThreadStreamContentMessageMessageContentTypeToolResult, ThreadStreamEventThreadStreamContentMessageMessageContentTypeServerToolUse, ThreadStreamEventThreadStreamContentMessageMessageContentTypeWebSearchToolResult:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamContentMessageMessageRole string
+
+const (
+	ThreadStreamEventThreadStreamContentMessageMessageRoleUser      ThreadStreamEventThreadStreamContentMessageMessageRole = "user"
+	ThreadStreamEventThreadStreamContentMessageMessageRoleAssistant ThreadStreamEventThreadStreamContentMessageMessageRole = "assistant"
+)
+
+func (r ThreadStreamEventThreadStreamContentMessageMessageRole) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamContentMessageMessageRoleUser, ThreadStreamEventThreadStreamContentMessageMessageRoleAssistant:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamContentMessageType string
+
+const (
+	ThreadStreamEventThreadStreamContentMessageTypeMessage ThreadStreamEventThreadStreamContentMessageType = "message"
+)
+
+func (r ThreadStreamEventThreadStreamContentMessageType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamContentMessageTypeMessage:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamProgressMessage struct {
+	EventSeq     float64                                          `json:"eventSeq" api:"required"`
+	MessageCount float64                                          `json:"messageCount" api:"required"`
+	StepCount    float64                                          `json:"stepCount" api:"required"`
+	StepSeq      float64                                          `json:"stepSeq" api:"required"`
+	TurnID       string                                           `json:"turnId" api:"required"`
+	Type         ThreadStreamEventThreadStreamProgressMessageType `json:"type" api:"required"`
+	JSON         threadStreamEventThreadStreamProgressMessageJSON `json:"-"`
+}
+
+// threadStreamEventThreadStreamProgressMessageJSON contains the JSON metadata for
+// the struct [ThreadStreamEventThreadStreamProgressMessage]
+type threadStreamEventThreadStreamProgressMessageJSON struct {
+	EventSeq     apijson.Field
+	MessageCount apijson.Field
+	StepCount    apijson.Field
+	StepSeq      apijson.Field
+	TurnID       apijson.Field
+	Type         apijson.Field
+	raw          string
+	ExtraFields  map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamProgressMessage) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamProgressMessageJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamProgressMessage) implementsThreadStreamEvent() {}
+
+type ThreadStreamEventThreadStreamProgressMessageType string
+
+const (
+	ThreadStreamEventThreadStreamProgressMessageTypeProgress ThreadStreamEventThreadStreamProgressMessageType = "progress"
+)
+
+func (r ThreadStreamEventThreadStreamProgressMessageType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamProgressMessageTypeProgress:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamTurnStartedMessage struct {
+	EventSeq float64                                             `json:"eventSeq" api:"required"`
+	TurnID   string                                              `json:"turnId" api:"required"`
+	TurnSeq  float64                                             `json:"turnSeq" api:"required"`
+	Type     ThreadStreamEventThreadStreamTurnStartedMessageType `json:"type" api:"required"`
+	JSON     threadStreamEventThreadStreamTurnStartedMessageJSON `json:"-"`
+}
+
+// threadStreamEventThreadStreamTurnStartedMessageJSON contains the JSON metadata
+// for the struct [ThreadStreamEventThreadStreamTurnStartedMessage]
+type threadStreamEventThreadStreamTurnStartedMessageJSON struct {
+	EventSeq    apijson.Field
+	TurnID      apijson.Field
+	TurnSeq     apijson.Field
+	Type        apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamTurnStartedMessage) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamTurnStartedMessageJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamTurnStartedMessage) implementsThreadStreamEvent() {}
+
+type ThreadStreamEventThreadStreamTurnStartedMessageType string
+
+const (
+	ThreadStreamEventThreadStreamTurnStartedMessageTypeTurnStarted ThreadStreamEventThreadStreamTurnStartedMessageType = "turn/started"
+)
+
+func (r ThreadStreamEventThreadStreamTurnStartedMessageType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamTurnStartedMessageTypeTurnStarted:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamTurnCompletedMessage struct {
+	Error    string                                                  `json:"error" api:"required,nullable"`
+	EventSeq float64                                                 `json:"eventSeq" api:"required"`
+	Result   string                                                  `json:"result" api:"required,nullable"`
+	Status   ThreadStreamEventThreadStreamTurnCompletedMessageStatus `json:"status" api:"required"`
+	TurnID   string                                                  `json:"turnId" api:"required"`
+	TurnSeq  float64                                                 `json:"turnSeq" api:"required"`
+	Type     ThreadStreamEventThreadStreamTurnCompletedMessageType   `json:"type" api:"required"`
+	JSON     threadStreamEventThreadStreamTurnCompletedMessageJSON   `json:"-"`
+}
+
+// threadStreamEventThreadStreamTurnCompletedMessageJSON contains the JSON metadata
+// for the struct [ThreadStreamEventThreadStreamTurnCompletedMessage]
+type threadStreamEventThreadStreamTurnCompletedMessageJSON struct {
+	Error       apijson.Field
+	EventSeq    apijson.Field
+	Result      apijson.Field
+	Status      apijson.Field
+	TurnID      apijson.Field
+	TurnSeq     apijson.Field
+	Type        apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamTurnCompletedMessage) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamTurnCompletedMessageJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamTurnCompletedMessage) implementsThreadStreamEvent() {}
+
+type ThreadStreamEventThreadStreamTurnCompletedMessageStatus string
+
+const (
+	ThreadStreamEventThreadStreamTurnCompletedMessageStatusCompleted ThreadStreamEventThreadStreamTurnCompletedMessageStatus = "completed"
+	ThreadStreamEventThreadStreamTurnCompletedMessageStatusFailed    ThreadStreamEventThreadStreamTurnCompletedMessageStatus = "failed"
+)
+
+func (r ThreadStreamEventThreadStreamTurnCompletedMessageStatus) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamTurnCompletedMessageStatusCompleted, ThreadStreamEventThreadStreamTurnCompletedMessageStatusFailed:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamTurnCompletedMessageType string
+
+const (
+	ThreadStreamEventThreadStreamTurnCompletedMessageTypeTurnCompleted ThreadStreamEventThreadStreamTurnCompletedMessageType = "turn/completed"
+)
+
+func (r ThreadStreamEventThreadStreamTurnCompletedMessageType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamTurnCompletedMessageTypeTurnCompleted:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamItemStartedMessage struct {
+	EventSeq          float64                                                 `json:"eventSeq" api:"required"`
+	ItemID            string                                                  `json:"itemId" api:"required"`
+	ItemType          ThreadStreamEventThreadStreamItemStartedMessageItemType `json:"itemType" api:"required"`
+	TurnID            string                                                  `json:"turnId" api:"required"`
+	Type              ThreadStreamEventThreadStreamItemStartedMessageType     `json:"type" api:"required"`
+	RequestedToolName string                                                  `json:"requestedToolName"`
+	SubThreadID       string                                                  `json:"subThreadId"`
+	ToolName          shared.ToolName                                         `json:"toolName"`
+	JSON              threadStreamEventThreadStreamItemStartedMessageJSON     `json:"-"`
+}
+
+// threadStreamEventThreadStreamItemStartedMessageJSON contains the JSON metadata
+// for the struct [ThreadStreamEventThreadStreamItemStartedMessage]
+type threadStreamEventThreadStreamItemStartedMessageJSON struct {
+	EventSeq          apijson.Field
+	ItemID            apijson.Field
+	ItemType          apijson.Field
+	TurnID            apijson.Field
+	Type              apijson.Field
+	RequestedToolName apijson.Field
+	SubThreadID       apijson.Field
+	ToolName          apijson.Field
+	raw               string
+	ExtraFields       map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamItemStartedMessage) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamItemStartedMessageJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamItemStartedMessage) implementsThreadStreamEvent() {}
+
+type ThreadStreamEventThreadStreamItemStartedMessageItemType string
+
+const (
+	ThreadStreamEventThreadStreamItemStartedMessageItemTypeToolCall     ThreadStreamEventThreadStreamItemStartedMessageItemType = "tool_call"
+	ThreadStreamEventThreadStreamItemStartedMessageItemTypeAgentMessage ThreadStreamEventThreadStreamItemStartedMessageItemType = "agent_message"
+	ThreadStreamEventThreadStreamItemStartedMessageItemTypeLlmCall      ThreadStreamEventThreadStreamItemStartedMessageItemType = "llm_call"
+	ThreadStreamEventThreadStreamItemStartedMessageItemTypeSubThread    ThreadStreamEventThreadStreamItemStartedMessageItemType = "sub_thread"
+)
+
+func (r ThreadStreamEventThreadStreamItemStartedMessageItemType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamItemStartedMessageItemTypeToolCall, ThreadStreamEventThreadStreamItemStartedMessageItemTypeAgentMessage, ThreadStreamEventThreadStreamItemStartedMessageItemTypeLlmCall, ThreadStreamEventThreadStreamItemStartedMessageItemTypeSubThread:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamItemStartedMessageType string
+
+const (
+	ThreadStreamEventThreadStreamItemStartedMessageTypeItemStarted ThreadStreamEventThreadStreamItemStartedMessageType = "item/started"
+)
+
+func (r ThreadStreamEventThreadStreamItemStartedMessageType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamItemStartedMessageTypeItemStarted:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamItemCompletedMessage struct {
+	DurationMs        float64                                                   `json:"durationMs" api:"required"`
+	EventSeq          float64                                                   `json:"eventSeq" api:"required"`
+	ItemID            string                                                    `json:"itemId" api:"required"`
+	ItemType          ThreadStreamEventThreadStreamItemCompletedMessageItemType `json:"itemType" api:"required"`
+	TurnID            string                                                    `json:"turnId" api:"required"`
+	Type              ThreadStreamEventThreadStreamItemCompletedMessageType     `json:"type" api:"required"`
+	IsError           bool                                                      `json:"isError"`
+	RequestedToolName string                                                    `json:"requestedToolName"`
+	JSON              threadStreamEventThreadStreamItemCompletedMessageJSON     `json:"-"`
+}
+
+// threadStreamEventThreadStreamItemCompletedMessageJSON contains the JSON metadata
+// for the struct [ThreadStreamEventThreadStreamItemCompletedMessage]
+type threadStreamEventThreadStreamItemCompletedMessageJSON struct {
+	DurationMs        apijson.Field
+	EventSeq          apijson.Field
+	ItemID            apijson.Field
+	ItemType          apijson.Field
+	TurnID            apijson.Field
+	Type              apijson.Field
+	IsError           apijson.Field
+	RequestedToolName apijson.Field
+	raw               string
+	ExtraFields       map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamItemCompletedMessage) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamItemCompletedMessageJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamItemCompletedMessage) implementsThreadStreamEvent() {}
+
+type ThreadStreamEventThreadStreamItemCompletedMessageItemType string
+
+const (
+	ThreadStreamEventThreadStreamItemCompletedMessageItemTypeToolCall     ThreadStreamEventThreadStreamItemCompletedMessageItemType = "tool_call"
+	ThreadStreamEventThreadStreamItemCompletedMessageItemTypeAgentMessage ThreadStreamEventThreadStreamItemCompletedMessageItemType = "agent_message"
+	ThreadStreamEventThreadStreamItemCompletedMessageItemTypeLlmCall      ThreadStreamEventThreadStreamItemCompletedMessageItemType = "llm_call"
+	ThreadStreamEventThreadStreamItemCompletedMessageItemTypeSubThread    ThreadStreamEventThreadStreamItemCompletedMessageItemType = "sub_thread"
+)
+
+func (r ThreadStreamEventThreadStreamItemCompletedMessageItemType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamItemCompletedMessageItemTypeToolCall, ThreadStreamEventThreadStreamItemCompletedMessageItemTypeAgentMessage, ThreadStreamEventThreadStreamItemCompletedMessageItemTypeLlmCall, ThreadStreamEventThreadStreamItemCompletedMessageItemTypeSubThread:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamItemCompletedMessageType string
+
+const (
+	ThreadStreamEventThreadStreamItemCompletedMessageTypeItemCompleted ThreadStreamEventThreadStreamItemCompletedMessageType = "item/completed"
+)
+
+func (r ThreadStreamEventThreadStreamItemCompletedMessageType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamItemCompletedMessageTypeItemCompleted:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamTokenUsageMessage struct {
+	CumulativeInputTokens  float64                                            `json:"cumulativeInputTokens" api:"required"`
+	CumulativeOutputTokens float64                                            `json:"cumulativeOutputTokens" api:"required"`
+	EventSeq               float64                                            `json:"eventSeq" api:"required"`
+	InputTokens            float64                                            `json:"inputTokens" api:"required"`
+	OutputTokens           float64                                            `json:"outputTokens" api:"required"`
+	TurnID                 string                                             `json:"turnId" api:"required"`
+	Type                   ThreadStreamEventThreadStreamTokenUsageMessageType `json:"type" api:"required"`
+	JSON                   threadStreamEventThreadStreamTokenUsageMessageJSON `json:"-"`
+}
+
+// threadStreamEventThreadStreamTokenUsageMessageJSON contains the JSON metadata
+// for the struct [ThreadStreamEventThreadStreamTokenUsageMessage]
+type threadStreamEventThreadStreamTokenUsageMessageJSON struct {
+	CumulativeInputTokens  apijson.Field
+	CumulativeOutputTokens apijson.Field
+	EventSeq               apijson.Field
+	InputTokens            apijson.Field
+	OutputTokens           apijson.Field
+	TurnID                 apijson.Field
+	Type                   apijson.Field
+	raw                    string
+	ExtraFields            map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamTokenUsageMessage) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamTokenUsageMessageJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamTokenUsageMessage) implementsThreadStreamEvent() {}
+
+type ThreadStreamEventThreadStreamTokenUsageMessageType string
+
+const (
+	ThreadStreamEventThreadStreamTokenUsageMessageTypeTokenUsage ThreadStreamEventThreadStreamTokenUsageMessageType = "token_usage"
+)
+
+func (r ThreadStreamEventThreadStreamTokenUsageMessageType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamTokenUsageMessageTypeTokenUsage:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamApprovalRequestedMessage struct {
+	Approval ThreadStreamEventThreadStreamApprovalRequestedMessageApproval `json:"approval" api:"required"`
+	EventSeq float64                                                       `json:"eventSeq" api:"required"`
+	TurnID   string                                                        `json:"turnId" api:"required"`
+	Type     ThreadStreamEventThreadStreamApprovalRequestedMessageType     `json:"type" api:"required"`
+	JSON     threadStreamEventThreadStreamApprovalRequestedMessageJSON     `json:"-"`
+}
+
+// threadStreamEventThreadStreamApprovalRequestedMessageJSON contains the JSON
+// metadata for the struct [ThreadStreamEventThreadStreamApprovalRequestedMessage]
+type threadStreamEventThreadStreamApprovalRequestedMessageJSON struct {
+	Approval    apijson.Field
+	EventSeq    apijson.Field
+	TurnID      apijson.Field
+	Type        apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamApprovalRequestedMessage) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamApprovalRequestedMessageJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamApprovalRequestedMessage) implementsThreadStreamEvent() {}
+
+type ThreadStreamEventThreadStreamApprovalRequestedMessageApproval struct {
+	ID                string                                                              `json:"id" api:"required"`
+	CreatedAt         string                                                              `json:"createdAt" api:"required"`
+	RequestedToolName string                                                              `json:"requestedToolName" api:"required"`
+	ResolvedAt        string                                                              `json:"resolvedAt" api:"required,nullable"`
+	Status            ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatus `json:"status" api:"required"`
+	ThreadID          string                                                              `json:"threadId" api:"required"`
+	TimeoutAt         string                                                              `json:"timeoutAt" api:"required,nullable"`
+	TimeoutMs         float64                                                             `json:"timeoutMs" api:"required,nullable"`
+	ToolIndex         float64                                                             `json:"toolIndex" api:"required"`
+	// JSON-serialized tool input payload. Parse as JSON before reading tool-specific
+	// fields.
+	ToolInput         string                                                            `json:"toolInput" api:"required"`
+	ToolName          shared.ToolName                                                   `json:"toolName" api:"required"`
+	ToolUseID         string                                                            `json:"toolUseId" api:"required"`
+	TurnID            string                                                            `json:"turnId" api:"required"`
+	ToolSourceID      string                                                            `json:"toolSourceId"`
+	ToolSourceVersion float64                                                           `json:"toolSourceVersion"`
+	JSON              threadStreamEventThreadStreamApprovalRequestedMessageApprovalJSON `json:"-"`
+}
+
+// threadStreamEventThreadStreamApprovalRequestedMessageApprovalJSON contains the
+// JSON metadata for the struct
+// [ThreadStreamEventThreadStreamApprovalRequestedMessageApproval]
+type threadStreamEventThreadStreamApprovalRequestedMessageApprovalJSON struct {
+	ID                apijson.Field
+	CreatedAt         apijson.Field
+	RequestedToolName apijson.Field
+	ResolvedAt        apijson.Field
+	Status            apijson.Field
+	ThreadID          apijson.Field
+	TimeoutAt         apijson.Field
+	TimeoutMs         apijson.Field
+	ToolIndex         apijson.Field
+	ToolInput         apijson.Field
+	ToolName          apijson.Field
+	ToolUseID         apijson.Field
+	TurnID            apijson.Field
+	ToolSourceID      apijson.Field
+	ToolSourceVersion apijson.Field
+	raw               string
+	ExtraFields       map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamApprovalRequestedMessageApproval) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamApprovalRequestedMessageApprovalJSON) RawJSON() string {
+	return r.raw
+}
+
+type ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatus string
+
+const (
+	ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatusPending   ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatus = "pending"
+	ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatusApproved  ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatus = "approved"
+	ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatusDenied    ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatus = "denied"
+	ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatusCancelled ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatus = "cancelled"
+	ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatusTimedOut  ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatus = "timed_out"
+)
+
+func (r ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatus) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatusPending, ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatusApproved, ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatusDenied, ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatusCancelled, ThreadStreamEventThreadStreamApprovalRequestedMessageApprovalStatusTimedOut:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamApprovalRequestedMessageType string
+
+const (
+	ThreadStreamEventThreadStreamApprovalRequestedMessageTypeApprovalRequested ThreadStreamEventThreadStreamApprovalRequestedMessageType = "approval/requested"
+)
+
+func (r ThreadStreamEventThreadStreamApprovalRequestedMessageType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamApprovalRequestedMessageTypeApprovalRequested:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamApprovalResolvedMessage struct {
+	ApprovalID string                                                       `json:"approvalId" api:"required"`
+	Decision   ThreadStreamEventThreadStreamApprovalResolvedMessageDecision `json:"decision" api:"required"`
+	EventSeq   float64                                                      `json:"eventSeq" api:"required"`
+	TurnID     string                                                       `json:"turnId" api:"required"`
+	Type       ThreadStreamEventThreadStreamApprovalResolvedMessageType     `json:"type" api:"required"`
+	JSON       threadStreamEventThreadStreamApprovalResolvedMessageJSON     `json:"-"`
+}
+
+// threadStreamEventThreadStreamApprovalResolvedMessageJSON contains the JSON
+// metadata for the struct [ThreadStreamEventThreadStreamApprovalResolvedMessage]
+type threadStreamEventThreadStreamApprovalResolvedMessageJSON struct {
+	ApprovalID  apijson.Field
+	Decision    apijson.Field
+	EventSeq    apijson.Field
+	TurnID      apijson.Field
+	Type        apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *ThreadStreamEventThreadStreamApprovalResolvedMessage) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadStreamEventThreadStreamApprovalResolvedMessageJSON) RawJSON() string {
+	return r.raw
+}
+
+func (r ThreadStreamEventThreadStreamApprovalResolvedMessage) implementsThreadStreamEvent() {}
+
+type ThreadStreamEventThreadStreamApprovalResolvedMessageDecision string
+
+const (
+	ThreadStreamEventThreadStreamApprovalResolvedMessageDecisionApprove ThreadStreamEventThreadStreamApprovalResolvedMessageDecision = "approve"
+	ThreadStreamEventThreadStreamApprovalResolvedMessageDecisionDeny    ThreadStreamEventThreadStreamApprovalResolvedMessageDecision = "deny"
+	ThreadStreamEventThreadStreamApprovalResolvedMessageDecisionCancel  ThreadStreamEventThreadStreamApprovalResolvedMessageDecision = "cancel"
+	ThreadStreamEventThreadStreamApprovalResolvedMessageDecisionTimeout ThreadStreamEventThreadStreamApprovalResolvedMessageDecision = "timeout"
+)
+
+func (r ThreadStreamEventThreadStreamApprovalResolvedMessageDecision) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamApprovalResolvedMessageDecisionApprove, ThreadStreamEventThreadStreamApprovalResolvedMessageDecisionDeny, ThreadStreamEventThreadStreamApprovalResolvedMessageDecisionCancel, ThreadStreamEventThreadStreamApprovalResolvedMessageDecisionTimeout:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventThreadStreamApprovalResolvedMessageType string
+
+const (
+	ThreadStreamEventThreadStreamApprovalResolvedMessageTypeApprovalResolved ThreadStreamEventThreadStreamApprovalResolvedMessageType = "approval/resolved"
+)
+
+func (r ThreadStreamEventThreadStreamApprovalResolvedMessageType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventThreadStreamApprovalResolvedMessageTypeApprovalResolved:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventType string
+
+const (
+	ThreadStreamEventTypeStatus            ThreadStreamEventType = "status"
+	ThreadStreamEventTypeMessage           ThreadStreamEventType = "message"
+	ThreadStreamEventTypeProgress          ThreadStreamEventType = "progress"
+	ThreadStreamEventTypeTurnStarted       ThreadStreamEventType = "turn/started"
+	ThreadStreamEventTypeTurnCompleted     ThreadStreamEventType = "turn/completed"
+	ThreadStreamEventTypeItemStarted       ThreadStreamEventType = "item/started"
+	ThreadStreamEventTypeItemCompleted     ThreadStreamEventType = "item/completed"
+	ThreadStreamEventTypeTokenUsage        ThreadStreamEventType = "token_usage"
+	ThreadStreamEventTypeApprovalRequested ThreadStreamEventType = "approval/requested"
+	ThreadStreamEventTypeApprovalResolved  ThreadStreamEventType = "approval/resolved"
+)
+
+func (r ThreadStreamEventType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventTypeStatus, ThreadStreamEventTypeMessage, ThreadStreamEventTypeProgress, ThreadStreamEventTypeTurnStarted, ThreadStreamEventTypeTurnCompleted, ThreadStreamEventTypeItemStarted, ThreadStreamEventTypeItemCompleted, ThreadStreamEventTypeTokenUsage, ThreadStreamEventTypeApprovalRequested, ThreadStreamEventTypeApprovalResolved:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventDecision string
+
+const (
+	ThreadStreamEventDecisionApprove ThreadStreamEventDecision = "approve"
+	ThreadStreamEventDecisionDeny    ThreadStreamEventDecision = "deny"
+	ThreadStreamEventDecisionCancel  ThreadStreamEventDecision = "cancel"
+	ThreadStreamEventDecisionTimeout ThreadStreamEventDecision = "timeout"
+)
+
+func (r ThreadStreamEventDecision) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventDecisionApprove, ThreadStreamEventDecisionDeny, ThreadStreamEventDecisionCancel, ThreadStreamEventDecisionTimeout:
+		return true
+	}
+	return false
+}
+
+type ThreadStreamEventItemType string
+
+const (
+	ThreadStreamEventItemTypeToolCall     ThreadStreamEventItemType = "tool_call"
+	ThreadStreamEventItemTypeAgentMessage ThreadStreamEventItemType = "agent_message"
+	ThreadStreamEventItemTypeLlmCall      ThreadStreamEventItemType = "llm_call"
+	ThreadStreamEventItemTypeSubThread    ThreadStreamEventItemType = "sub_thread"
+)
+
+func (r ThreadStreamEventItemType) IsKnown() bool {
+	switch r {
+	case ThreadStreamEventItemTypeToolCall, ThreadStreamEventItemTypeAgentMessage, ThreadStreamEventItemTypeLlmCall, ThreadStreamEventItemTypeSubThread:
+		return true
+	}
+	return false
+}
+
 type EventListForAgentParams struct {
 	// Opaque pagination cursor returned by a previous request.
 	Cursor param.Field[string] `query:"cursor"`
@@ -2325,6 +3606,114 @@ const (
 func (r EventListForThreadParamsHistory) IsKnown() bool {
 	switch r {
 	case EventListForThreadParamsHistoryTrue, EventListForThreadParamsHistoryFalse:
+		return true
+	}
+	return false
+}
+
+type EventStreamForAgentParams struct {
+	// Opaque pagination cursor returned by a previous request.
+	Cursor param.Field[string] `query:"cursor"`
+	// Comma-separated event type filter.
+	Events param.Field[string] `query:"events"`
+	// When true, starts from the beginning of the retained buffer.
+	History param.Field[EventStreamForAgentParamsHistory] `query:"history"`
+	// Resume an event-log stream after the last received SSE event id.
+	LastEventID param.Field[string] `header:"Last-Event-ID"`
+}
+
+// URLQuery serializes [EventStreamForAgentParams]'s query parameters as
+// `url.Values`.
+func (r EventStreamForAgentParams) URLQuery() (v url.Values) {
+	return apiquery.MarshalWithSettings(r, apiquery.QuerySettings{
+		ArrayFormat:  apiquery.ArrayQueryFormatComma,
+		NestedFormat: apiquery.NestedQueryFormatBrackets,
+	})
+}
+
+// When true, starts from the beginning of the retained buffer.
+type EventStreamForAgentParamsHistory string
+
+const (
+	EventStreamForAgentParamsHistoryTrue  EventStreamForAgentParamsHistory = "true"
+	EventStreamForAgentParamsHistoryFalse EventStreamForAgentParamsHistory = "false"
+)
+
+func (r EventStreamForAgentParamsHistory) IsKnown() bool {
+	switch r {
+	case EventStreamForAgentParamsHistoryTrue, EventStreamForAgentParamsHistoryFalse:
+		return true
+	}
+	return false
+}
+
+type EventStreamForFleetParams struct {
+	// Opaque pagination cursor returned by a previous request.
+	Cursor param.Field[string] `query:"cursor"`
+	// Comma-separated event type filter.
+	Events param.Field[string] `query:"events"`
+	// When true, starts from the beginning of the retained buffer.
+	History param.Field[EventStreamForFleetParamsHistory] `query:"history"`
+	// Resume an event-log stream after the last received SSE event id.
+	LastEventID param.Field[string] `header:"Last-Event-ID"`
+}
+
+// URLQuery serializes [EventStreamForFleetParams]'s query parameters as
+// `url.Values`.
+func (r EventStreamForFleetParams) URLQuery() (v url.Values) {
+	return apiquery.MarshalWithSettings(r, apiquery.QuerySettings{
+		ArrayFormat:  apiquery.ArrayQueryFormatComma,
+		NestedFormat: apiquery.NestedQueryFormatBrackets,
+	})
+}
+
+// When true, starts from the beginning of the retained buffer.
+type EventStreamForFleetParamsHistory string
+
+const (
+	EventStreamForFleetParamsHistoryTrue  EventStreamForFleetParamsHistory = "true"
+	EventStreamForFleetParamsHistoryFalse EventStreamForFleetParamsHistory = "false"
+)
+
+func (r EventStreamForFleetParamsHistory) IsKnown() bool {
+	switch r {
+	case EventStreamForFleetParamsHistoryTrue, EventStreamForFleetParamsHistoryFalse:
+		return true
+	}
+	return false
+}
+
+type EventStreamForThreadEventsParams struct {
+	// Opaque pagination cursor returned by a previous request.
+	Cursor param.Field[string] `query:"cursor"`
+	// Comma-separated event type filter.
+	Events param.Field[string] `query:"events"`
+	// When true, starts from the beginning of the retained buffer.
+	History param.Field[EventStreamForThreadEventsParamsHistory] `query:"history"`
+	// Resume an event-log stream after the last received SSE event id.
+	LastEventID param.Field[string] `header:"Last-Event-ID"`
+}
+
+// URLQuery serializes [EventStreamForThreadEventsParams]'s query parameters as
+// `url.Values`.
+func (r EventStreamForThreadEventsParams) URLQuery() (v url.Values) {
+	return apiquery.MarshalWithSettings(r, apiquery.QuerySettings{
+		ArrayFormat:  apiquery.ArrayQueryFormatComma,
+		NestedFormat: apiquery.NestedQueryFormatBrackets,
+	})
+}
+
+// When true, starts from the beginning of the retained buffer.
+type EventStreamForThreadEventsParamsHistory string
+
+const (
+	EventStreamForThreadEventsParamsHistoryTrue  EventStreamForThreadEventsParamsHistory = "true"
+	EventStreamForThreadEventsParamsHistoryFalse EventStreamForThreadEventsParamsHistory = "false"
+)
+
+func (r EventStreamForThreadEventsParamsHistory) IsKnown() bool {
+	switch r {
+	case EventStreamForThreadEventsParamsHistoryTrue, EventStreamForThreadEventsParamsHistoryFalse:
 		return true
 	}
 	return false
