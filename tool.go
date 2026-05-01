@@ -39,14 +39,14 @@ func NewToolService(opts ...option.RequestOption) (r *ToolService) {
 	return
 }
 
-// Create tool source
+// Create tool
 func (r *ToolService) New(ctx context.Context, fleetID string, body ToolNewParams, opts ...option.RequestOption) (res *ToolSource, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if fleetID == "" {
 		err = errors.New("missing required fleetId parameter")
 		return nil, err
 	}
-	path := fmt.Sprintf("fleets/%s/tool-sources", fleetID)
+	path := fmt.Sprintf("fleets/%s/tools", fleetID)
 	err = requestconfig.ExecuteNewRequest(ctx, http.MethodPost, path, body, &res, opts...)
 	return res, err
 }
@@ -62,7 +62,7 @@ func (r *ToolService) Get(ctx context.Context, fleetID string, sourceID string, 
 		err = errors.New("missing required sourceId parameter")
 		return nil, err
 	}
-	path := fmt.Sprintf("fleets/%s/tool-sources/%s", fleetID, sourceID)
+	path := fmt.Sprintf("fleets/%s/tools/%s", fleetID, sourceID)
 	err = requestconfig.ExecuteNewRequest(ctx, http.MethodGet, path, nil, &res, opts...)
 	return res, err
 }
@@ -78,12 +78,12 @@ func (r *ToolService) Update(ctx context.Context, fleetID string, sourceID strin
 		err = errors.New("missing required sourceId parameter")
 		return nil, err
 	}
-	path := fmt.Sprintf("fleets/%s/tool-sources/%s", fleetID, sourceID)
+	path := fmt.Sprintf("fleets/%s/tools/%s", fleetID, sourceID)
 	err = requestconfig.ExecuteNewRequest(ctx, http.MethodPut, path, body, &res, opts...)
 	return res, err
 }
 
-// List tool sources
+// List tools
 func (r *ToolService) List(ctx context.Context, fleetID string, query ToolListParams, opts ...option.RequestOption) (res *pagination.SourcesCursorPage[ToolSource], err error) {
 	var raw *http.Response
 	opts = slices.Concat(r.Options, opts)
@@ -92,7 +92,7 @@ func (r *ToolService) List(ctx context.Context, fleetID string, query ToolListPa
 		err = errors.New("missing required fleetId parameter")
 		return nil, err
 	}
-	path := fmt.Sprintf("fleets/%s/tool-sources", fleetID)
+	path := fmt.Sprintf("fleets/%s/tools", fleetID)
 	cfg, err := requestconfig.NewRequestConfig(ctx, http.MethodGet, path, query, &res, opts...)
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func (r *ToolService) List(ctx context.Context, fleetID string, query ToolListPa
 	return res, nil
 }
 
-// List tool sources
+// List tools
 func (r *ToolService) ListAutoPaging(ctx context.Context, fleetID string, query ToolListParams, opts ...option.RequestOption) *pagination.SourcesCursorPageAutoPager[ToolSource] {
 	return pagination.NewSourcesCursorPageAutoPager(r.List(ctx, fleetID, query, opts...))
 }
@@ -122,7 +122,7 @@ func (r *ToolService) Delete(ctx context.Context, fleetID string, sourceID strin
 		err = errors.New("missing required sourceId parameter")
 		return err
 	}
-	path := fmt.Sprintf("fleets/%s/tool-sources/%s", fleetID, sourceID)
+	path := fmt.Sprintf("fleets/%s/tools/%s", fleetID, sourceID)
 	err = requestconfig.ExecuteNewRequest(ctx, http.MethodDelete, path, nil, nil, opts...)
 	return err
 }
