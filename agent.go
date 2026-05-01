@@ -654,8 +654,7 @@ func (r sourceWarningJSON) RawJSON() string {
 type Tool struct {
 	Category    ToolCategory `json:"category" api:"required"`
 	Description string       `json:"description" api:"required"`
-	// This field can have the runtime type of [shared.JsonObject],
-	// [map[string]interface{}].
+	// This field can have the runtime type of [map[string]interface{}].
 	InputSchema        interface{}            `json:"inputSchema" api:"required"`
 	Name               shared.ToolName        `json:"name" api:"required"`
 	AccountLabel       string                 `json:"accountLabel"`
@@ -807,13 +806,14 @@ func (r ToolOrigin) IsKnown() bool {
 
 // A built-in or configurable runtime tool currently available to the agent.
 type ToolDescriptor struct {
-	ApprovalSource   ToolDescriptorApprovalSource `json:"approvalSource" api:"required"`
-	Category         ToolDescriptorCategory       `json:"category" api:"required"`
-	Description      string                       `json:"description" api:"required"`
-	InputSchema      shared.JsonObject            `json:"inputSchema" api:"required"`
-	Name             shared.ToolName              `json:"name" api:"required"`
-	RequiresApproval bool                         `json:"requiresApproval" api:"required"`
-	JSON             toolDescriptorJSON           `json:"-"`
+	ApprovalSource ToolDescriptorApprovalSource `json:"approvalSource" api:"required"`
+	Category       ToolDescriptorCategory       `json:"category" api:"required"`
+	Description    string                       `json:"description" api:"required"`
+	// JSON Schema object describing tool input parameters.
+	InputSchema      map[string]interface{} `json:"inputSchema" api:"required"`
+	Name             shared.ToolName        `json:"name" api:"required"`
+	RequiresApproval bool                   `json:"requiresApproval" api:"required"`
+	JSON             toolDescriptorJSON     `json:"-"`
 }
 
 // toolDescriptorJSON contains the JSON metadata for the struct [ToolDescriptor]

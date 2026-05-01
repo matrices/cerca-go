@@ -19,12 +19,6 @@ const ApprovalModeAlways = shared.ApprovalModeAlways
 const ApprovalModeNever = shared.ApprovalModeNever
 
 // This is an alias to an internal type.
-type ErrorResponse = shared.ErrorResponse
-
-// This is an alias to an internal type.
-type JsonObject = shared.JsonObject
-
-// This is an alias to an internal type.
 type ToolName = shared.ToolName
 
 // This is an alias to an internal value.

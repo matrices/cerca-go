@@ -2,10 +2,6 @@
 
 package shared
 
-import (
-	"github.com/matrices/cerca-go/internal/apijson"
-)
-
 type ApprovalMode string
 
 const (
@@ -20,31 +16,6 @@ func (r ApprovalMode) IsKnown() bool {
 	}
 	return false
 }
-
-type ErrorResponse struct {
-	Error string `json:"error" api:"required"`
-	// Stable machine-readable error code when the API can provide one.
-	Code string            `json:"code"`
-	JSON errorResponseJSON `json:"-"`
-}
-
-// errorResponseJSON contains the JSON metadata for the struct [ErrorResponse]
-type errorResponseJSON struct {
-	Error       apijson.Field
-	Code        apijson.Field
-	raw         string
-	ExtraFields map[string]apijson.Field
-}
-
-func (r *ErrorResponse) UnmarshalJSON(data []byte) (err error) {
-	return apijson.UnmarshalRoot(data, r)
-}
-
-func (r errorResponseJSON) RawJSON() string {
-	return r.raw
-}
-
-type JsonObject map[string]interface{}
 
 type ToolName string
 
