@@ -5,6 +5,7 @@ package cercago_test
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"reflect"
 	"testing"
@@ -38,7 +39,7 @@ func TestUserAgentHeader(t *testing.T) {
 			},
 		}),
 	)
-	_, _ = client.Cells.New(context.Background(), cercago.CellNewParams{
+	_, _ = client.Agents.New(context.Background(), cercago.AgentNewParams{
 		UserID: cercago.F("user_abc123"),
 	})
 	if userAgent != fmt.Sprintf("Cerca/Go %s", internal.PackageVersion) {
@@ -64,7 +65,7 @@ func TestRetryAfter(t *testing.T) {
 			},
 		}),
 	)
-	_, err := client.Cells.New(context.Background(), cercago.CellNewParams{
+	_, err := client.Agents.New(context.Background(), cercago.AgentNewParams{
 		UserID: cercago.F("user_abc123"),
 	})
 	if err == nil {
@@ -101,7 +102,7 @@ func TestDeleteRetryCountHeader(t *testing.T) {
 		}),
 		option.WithHeaderDel("X-Stainless-Retry-Count"),
 	)
-	_, err := client.Cells.New(context.Background(), cercago.CellNewParams{
+	_, err := client.Agents.New(context.Background(), cercago.AgentNewParams{
 		UserID: cercago.F("user_abc123"),
 	})
 	if err == nil {
@@ -133,7 +134,7 @@ func TestOverwriteRetryCountHeader(t *testing.T) {
 		}),
 		option.WithHeader("X-Stainless-Retry-Count", "42"),
 	)
-	_, err := client.Cells.New(context.Background(), cercago.CellNewParams{
+	_, err := client.Agents.New(context.Background(), cercago.AgentNewParams{
 		UserID: cercago.F("user_abc123"),
 	})
 	if err == nil {
@@ -164,7 +165,7 @@ func TestRetryAfterMs(t *testing.T) {
 			},
 		}),
 	)
-	_, err := client.Cells.New(context.Background(), cercago.CellNewParams{
+	_, err := client.Agents.New(context.Background(), cercago.AgentNewParams{
 		UserID: cercago.F("user_abc123"),
 	})
 	if err == nil {
@@ -189,7 +190,7 @@ func TestContextCancel(t *testing.T) {
 	)
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err := client.Cells.New(cancelCtx, cercago.CellNewParams{
+	_, err := client.Agents.New(cancelCtx, cercago.AgentNewParams{
 		UserID: cercago.F("user_abc123"),
 	})
 	if err == nil {
@@ -211,7 +212,7 @@ func TestContextCancelDelay(t *testing.T) {
 	)
 	cancelCtx, cancel := context.WithTimeout(context.Background(), 2*time.Millisecond)
 	defer cancel()
-	_, err := client.Cells.New(cancelCtx, cercago.CellNewParams{
+	_, err := client.Agents.New(cancelCtx, cercago.AgentNewParams{
 		UserID: cercago.F("user_abc123"),
 	})
 	if err == nil {
@@ -239,7 +240,7 @@ func TestContextDeadline(t *testing.T) {
 				},
 			}),
 		)
-		_, err := client.Cells.New(deadlineCtx, cercago.CellNewParams{
+		_, err := client.Agents.New(deadlineCtx, cercago.AgentNewParams{
 			UserID: cercago.F("user_abc123"),
 		})
 		if err == nil {
@@ -257,3 +258,110 @@ func TestContextDeadline(t *testing.T) {
 		}
 	}
 }
+
+func TestContextDeadlineStreaming(t *testing.T) {
+	testTimeout := time.After(3 * time.Second)
+	testDone := make(chan struct{})
+
+	deadline := time.Now().Add(100 * time.Millisecond)
+	deadlineCtx, cancel := context.WithDeadline(context.Background(), deadline)
+	defer cancel()
+
+	go func() {
+		client := cercago.NewClient(
+			option.WithAPIKey("My API Key"),
+			option.WithHTTPClient(&http.Client{
+				Transport: &closureTransport{
+					fn: func(req *http.Request) (*http.Response, error) {
+						return &http.Response{
+							StatusCode: 200,
+							Status:     "200 OK",
+							Body: io.NopCloser(
+								io.Reader(readerFunc(func([]byte) (int, error) {
+									<-req.Context().Done()
+									return 0, req.Context().Err()
+								})),
+							),
+						}, nil
+					},
+				},
+			}),
+		)
+		stream := client.Events.StreamForAgentStreaming(
+			deadlineCtx,
+			"agent_abc123",
+			cercago.EventStreamForAgentParams{},
+		)
+		for stream.Next() {
+			_ = stream.Current()
+		}
+		if stream.Err() == nil {
+			t.Error("expected there to be a deadline error")
+		}
+		close(testDone)
+	}()
+
+	select {
+	case <-testTimeout:
+		t.Fatal("client didn't finish in time")
+	case <-testDone:
+		if diff := time.Since(deadline); diff < -30*time.Millisecond || 30*time.Millisecond < diff {
+			t.Fatalf("client did not return within 30ms of context deadline, got %s", diff)
+		}
+	}
+}
+
+func TestContextDeadlineStreamingWithRequestTimeout(t *testing.T) {
+	testTimeout := time.After(3 * time.Second)
+	testDone := make(chan struct{})
+	deadline := time.Now().Add(100 * time.Millisecond)
+
+	go func() {
+		client := cercago.NewClient(
+			option.WithAPIKey("My API Key"),
+			option.WithHTTPClient(&http.Client{
+				Transport: &closureTransport{
+					fn: func(req *http.Request) (*http.Response, error) {
+						return &http.Response{
+							StatusCode: 200,
+							Status:     "200 OK",
+							Body: io.NopCloser(
+								io.Reader(readerFunc(func([]byte) (int, error) {
+									<-req.Context().Done()
+									return 0, req.Context().Err()
+								})),
+							),
+						}, nil
+					},
+				},
+			}),
+		)
+		stream := client.Events.StreamForAgentStreaming(
+			context.Background(),
+			"agent_abc123",
+			cercago.EventStreamForAgentParams{},
+			option.WithRequestTimeout((100 * time.Millisecond)),
+		)
+		for stream.Next() {
+			_ = stream.Current()
+		}
+		if stream.Err() == nil {
+			t.Error("expected there to be a deadline error")
+		}
+		close(testDone)
+	}()
+
+	select {
+	case <-testTimeout:
+		t.Fatal("client didn't finish in time")
+	case <-testDone:
+		if diff := time.Since(deadline); diff < -30*time.Millisecond || 30*time.Millisecond < diff {
+			t.Fatalf("client did not return within 30ms of context deadline, got %s", diff)
+		}
+	}
+}
+
+type readerFunc func([]byte) (int, error)
+
+func (f readerFunc) Read(p []byte) (int, error) { return f(p) }
+func (f readerFunc) Close() error               { return nil }

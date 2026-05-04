@@ -24,7 +24,7 @@ Or to pin the version:
 <!-- x-release-please-start-version -->
 
 ```sh
-go get -u 'github.com/matrices/cerca-go@v0.0.1'
+go get -u 'github.com/matrices/cerca-go@v0.1.0'
 ```
 
 <!-- x-release-please-end -->
@@ -52,11 +52,11 @@ func main() {
 	client := cercago.NewClient(
 		option.WithAPIKey("My API Key"), // defaults to os.LookupEnv("CERCA_API_KEY")
 	)
-	thread, err := client.Cells.Threads.New(
+	thread, err := client.Threads.New(
 		context.TODO(),
-		"cell_abc123",
-		cercago.CellThreadNewParams{
-			UserMessage: cercago.F("What's on my calendar today?"),
+		"agent_abc123",
+		cercago.ThreadNewParams{
+			Message: cercago.F("What's on my calendar today?"),
 		},
 	)
 	if err != nil {
@@ -151,7 +151,7 @@ client := cercago.NewClient(
 	option.WithHeader("X-Some-Header", "custom_header_info"),
 )
 
-client.Cells.New(context.TODO(), ...,
+client.Agents.New(context.TODO(), ...,
 	// Override the header
 	option.WithHeader("X-Some-Header", "some_other_custom_header_info"),
 	// Add an undocumented field to the request body, using sjson syntax
@@ -167,8 +167,33 @@ This library provides some conveniences for working with paginated list endpoint
 
 You can use `.ListAutoPaging()` methods to iterate through items across all pages:
 
+```go
+iter := client.Agents.ListAutoPaging(context.TODO(), cercago.AgentListParams{})
+// Automatically fetches more pages as needed.
+for iter.Next() {
+	agentSummary := iter.Current()
+	fmt.Printf("%+v\n", agentSummary)
+}
+if err := iter.Err(); err != nil {
+	panic(err.Error())
+}
+```
+
 Or you can use simple `.List()` methods to fetch a single page and receive a standard response object
 with additional helper methods like `.GetNextPage()`, e.g.:
+
+```go
+page, err := client.Agents.List(context.TODO(), cercago.AgentListParams{})
+for page != nil {
+	for _, agent := range page.Agents {
+		fmt.Printf("%+v\n", agent)
+	}
+	page, err = page.GetNextPage()
+}
+if err != nil {
+	panic(err.Error())
+}
+```
 
 ### Errors
 
@@ -180,7 +205,7 @@ When the API returns a non-success status code, we return an error with type
 To handle errors, we recommend that you use the `errors.As` pattern:
 
 ```go
-_, err := client.Cells.New(context.TODO(), cercago.CellNewParams{
+_, err := client.Agents.New(context.TODO(), cercago.AgentNewParams{
 	UserID: cercago.F("user_abc123"),
 })
 if err != nil {
@@ -189,7 +214,7 @@ if err != nil {
 		println(string(apierr.DumpRequest(true)))  // Prints the serialized HTTP request
 		println(string(apierr.DumpResponse(true))) // Prints the serialized HTTP response
 	}
-	panic(err.Error()) // GET "/cells": 400 Bad Request { ... }
+	panic(err.Error()) // GET "/agents": 400 Bad Request { ... }
 }
 ```
 
@@ -207,9 +232,9 @@ To set a per-retry timeout, use `option.WithRequestTimeout()`.
 // This sets the timeout for the request, including all the retries.
 ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 defer cancel()
-client.Cells.New(
+client.Agents.New(
 	ctx,
-	cercago.CellNewParams{
+	cercago.AgentNewParams{
 		UserID: cercago.F("user_abc123"),
 	},
 	// This sets the per-retry timeout
@@ -245,9 +270,9 @@ client := cercago.NewClient(
 )
 
 // Override per-request:
-client.Cells.New(
+client.Agents.New(
 	context.TODO(),
-	cercago.CellNewParams{
+	cercago.AgentNewParams{
 		UserID: cercago.F("user_abc123"),
 	},
 	option.WithMaxRetries(5),
@@ -262,9 +287,9 @@ you need to examine response headers, status codes, or other details.
 ```go
 // Create a variable to store the HTTP response
 var response *http.Response
-cell, err := client.Cells.New(
+agent, err := client.Agents.New(
 	context.TODO(),
-	cercago.CellNewParams{
+	cercago.AgentNewParams{
 		UserID: cercago.F("user_abc123"),
 	},
 	option.WithResponseInto(&response),
@@ -272,7 +297,7 @@ cell, err := client.Cells.New(
 if err != nil {
 	// handle error
 }
-fmt.Printf("%+v\n", cell)
+fmt.Printf("%+v\n", agent)
 
 fmt.Printf("Status Code: %d\n", response.StatusCode)
 fmt.Printf("Headers: %+#v\n", response.Header)

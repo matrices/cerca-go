@@ -12,7 +12,7 @@ import (
 	"github.com/matrices/cerca-go/option"
 )
 
-func TestUsage(t *testing.T) {
+func TestAutoPagination(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
 		baseURL = envURL
@@ -24,16 +24,13 @@ func TestUsage(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	thread, err := client.Threads.New(
-		context.TODO(),
-		"agent_abc123",
-		cercago.ThreadNewParams{
-			Message: cercago.F("What's on my calendar today?"),
-		},
-	)
-	if err != nil {
-		t.Error(err)
-		return
+	iter := client.Agents.ListAutoPaging(context.TODO(), cercago.AgentListParams{})
+	// The mock server isn't going to give us real pagination
+	for i := 0; i < 3 && iter.Next(); i++ {
+		agent := iter.Current()
+		t.Logf("%+v\n", agent.ID)
 	}
-	t.Logf("%+v\n", thread.ID)
+	if err := iter.Err(); err != nil {
+		t.Fatalf("err should be nil: %s", err.Error())
+	}
 }

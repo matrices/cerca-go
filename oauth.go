@@ -34,6 +34,7 @@ func NewOAuthService(opts ...option.RequestOption) (r *OAuthService) {
 	return
 }
 
+// Start OAuth authorization
 func (r *OAuthService) Connect(ctx context.Context, provider string, body OAuthConnectParams, opts ...option.RequestOption) (res *OAuthConnectResponse, err error) {
 	opts = slices.Concat(r.Options, opts)
 	if provider == "" {
@@ -77,10 +78,11 @@ func (r oauthConnectResponseJSON) RawJSON() string {
 }
 
 type OAuthConnectParams struct {
+	// Public owner for a reusable connection. Organization owners use the
+	// authenticated organization; fleet owners add a fleetId.
+	Owner param.Field[ConnectionOwnerUnionParam] `json:"owner" api:"required"`
 	// HTTP(S) origin that receives the OAuth completion message.
 	ReturnOrigin param.Field[string] `json:"returnOrigin" api:"required"`
-	// Credential connection scope to attach the OAuth account to.
-	Scope param.Field[string] `json:"scope" api:"required"`
 	// Provider-specific OAuth scopes. Empty entries are ignored after trimming.
 	Scopes param.Field[[]string] `json:"scopes"`
 }

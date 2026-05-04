@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/matrices/cerca-go/internal/requestconfig"
 	"github.com/matrices/cerca-go/option"
@@ -16,24 +17,41 @@ import (
 // interacting with the cerca API. You should not instantiate this client directly,
 // and instead use the [NewClient] method instead.
 type Client struct {
-	Options      []option.RequestOption
-	Auth         *AuthService
-	OAuth        *OAuthService
-	Credentials  *CredentialService
-	Environments *EnvironmentService
-	Cells        *CellService
-	Models       *ModelService
+	Options          []option.RequestOption
+	Auth             *AuthService
+	OAuth            *OAuthService
+	Connections      *ConnectionService
+	Fleets           *FleetService
+	Tools            *ToolService
+	Webhooks         *WebhookService
+	Events           *EventService
+	Agents           *AgentService
+	Threads          *ThreadService
+	Context          *ContextService
+	Schedules        *ScheduleService
+	ApprovalRequests *ApprovalRequestService
+	ApprovalGrants   *ApprovalGrantService
+	Sandbox          *SandboxService
+	Models           *ModelService
 }
 
 // DefaultClientOptions read from the environment (CERCA_API_KEY, CERCA_BASE_URL).
 // This should be used to initialize new clients.
 func DefaultClientOptions() []option.RequestOption {
-	defaults := []option.RequestOption{option.WithEnvironmentProduction()}
+	defaults := []option.RequestOption{option.WithHTTPClient(defaultHTTPClient()), option.WithEnvironmentProduction()}
 	if o, ok := os.LookupEnv("CERCA_BASE_URL"); ok {
 		defaults = append(defaults, option.WithBaseURL(o))
 	}
 	if o, ok := os.LookupEnv("CERCA_API_KEY"); ok {
 		defaults = append(defaults, option.WithAPIKey(o))
+	}
+	if o, ok := os.LookupEnv("CERCA_CUSTOM_HEADERS"); ok {
+		for _, line := range strings.Split(o, "\n") {
+			colon := strings.Index(line, ":")
+			if colon >= 0 {
+				defaults = append(defaults, option.WithHeader(strings.TrimSpace(line[:colon]), strings.TrimSpace(line[colon+1:])))
+			}
+		}
 	}
 	return defaults
 }
@@ -49,9 +67,18 @@ func NewClient(opts ...option.RequestOption) (r *Client) {
 
 	r.Auth = NewAuthService(opts...)
 	r.OAuth = NewOAuthService(opts...)
-	r.Credentials = NewCredentialService(opts...)
-	r.Environments = NewEnvironmentService(opts...)
-	r.Cells = NewCellService(opts...)
+	r.Connections = NewConnectionService(opts...)
+	r.Fleets = NewFleetService(opts...)
+	r.Tools = NewToolService(opts...)
+	r.Webhooks = NewWebhookService(opts...)
+	r.Events = NewEventService(opts...)
+	r.Agents = NewAgentService(opts...)
+	r.Threads = NewThreadService(opts...)
+	r.Context = NewContextService(opts...)
+	r.Schedules = NewScheduleService(opts...)
+	r.ApprovalRequests = NewApprovalRequestService(opts...)
+	r.ApprovalGrants = NewApprovalGrantService(opts...)
+	r.Sandbox = NewSandboxService(opts...)
 	r.Models = NewModelService(opts...)
 
 	return

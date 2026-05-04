@@ -12,7 +12,7 @@ import (
 	"github.com/matrices/cerca-go/option"
 )
 
-func TestUsage(t *testing.T) {
+func TestManualPagination(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
 		baseURL = envURL
@@ -24,16 +24,21 @@ func TestUsage(t *testing.T) {
 		option.WithBaseURL(baseURL),
 		option.WithAPIKey("My API Key"),
 	)
-	thread, err := client.Threads.New(
-		context.TODO(),
-		"agent_abc123",
-		cercago.ThreadNewParams{
-			Message: cercago.F("What's on my calendar today?"),
-		},
-	)
+	page, err := client.Agents.List(context.TODO(), cercago.AgentListParams{})
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatalf("err should be nil: %s", err.Error())
 	}
-	t.Logf("%+v\n", thread.ID)
+	for _, agent := range page.Agents {
+		t.Logf("%+v\n", agent.ID)
+	}
+	// The mock server isn't going to give us real pagination
+	page, err = page.GetNextPage()
+	if err != nil {
+		t.Fatalf("err should be nil: %s", err.Error())
+	}
+	if page != nil {
+		for _, agent := range page.Agents {
+			t.Logf("%+v\n", agent.ID)
+		}
+	}
 }
