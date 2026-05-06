@@ -1219,3 +1219,113 @@ func (r *ThreadsCursorPageAutoPager[T]) Err() error {
 func (r *ThreadsCursorPageAutoPager[T]) Index() int {
 	return r.run
 }
+
+type ThreadMessagesCursorPage[T any] struct {
+	Messages []T                          `json:"messages"`
+	Cursor   string                       `json:"cursor" api:"nullable"`
+	HasMore  bool                         `json:"hasMore"`
+	JSON     threadMessagesCursorPageJSON `json:"-"`
+	cfg      *requestconfig.RequestConfig
+	res      *http.Response
+}
+
+// threadMessagesCursorPageJSON contains the JSON metadata for the struct
+// [ThreadMessagesCursorPage[T]]
+type threadMessagesCursorPageJSON struct {
+	Messages    apijson.Field
+	Cursor      apijson.Field
+	HasMore     apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *ThreadMessagesCursorPage[T]) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadMessagesCursorPageJSON) RawJSON() string {
+	return r.raw
+}
+
+// GetNextPage returns the next page as defined by this pagination style. When
+// there is no next page, this function will return a 'nil' for the page value, but
+// will not return an error
+func (r *ThreadMessagesCursorPage[T]) GetNextPage() (res *ThreadMessagesCursorPage[T], err error) {
+	if len(r.Messages) == 0 {
+		return nil, nil
+	}
+
+	if !r.JSON.HasMore.IsMissing() && r.HasMore == false {
+		return nil, nil
+	}
+	next := r.Cursor
+	if len(next) == 0 {
+		return nil, nil
+	}
+	cfg := r.cfg.Clone(r.cfg.Context)
+	err = cfg.Apply(option.WithQuery("cursor", next))
+	if err != nil {
+		return nil, err
+	}
+	var raw *http.Response
+	cfg.ResponseInto = &raw
+	cfg.ResponseBodyInto = &res
+	err = cfg.Execute()
+	if err != nil {
+		return nil, err
+	}
+	res.SetPageConfig(cfg, raw)
+	return res, nil
+}
+
+func (r *ThreadMessagesCursorPage[T]) SetPageConfig(cfg *requestconfig.RequestConfig, res *http.Response) {
+	if r == nil {
+		r = &ThreadMessagesCursorPage[T]{}
+	}
+	r.cfg = cfg
+	r.res = res
+}
+
+type ThreadMessagesCursorPageAutoPager[T any] struct {
+	page *ThreadMessagesCursorPage[T]
+	cur  T
+	idx  int
+	run  int
+	err  error
+}
+
+func NewThreadMessagesCursorPageAutoPager[T any](page *ThreadMessagesCursorPage[T], err error) *ThreadMessagesCursorPageAutoPager[T] {
+	return &ThreadMessagesCursorPageAutoPager[T]{
+		page: page,
+		err:  err,
+	}
+}
+
+func (r *ThreadMessagesCursorPageAutoPager[T]) Next() bool {
+	if r.page == nil || len(r.page.Messages) == 0 {
+		return false
+	}
+	if r.idx >= len(r.page.Messages) {
+		r.idx = 0
+		r.page, r.err = r.page.GetNextPage()
+		if r.err != nil || r.page == nil || len(r.page.Messages) == 0 {
+			return false
+		}
+	}
+	r.cur = r.page.Messages[r.idx]
+	r.run += 1
+	r.idx += 1
+	return true
+}
+
+func (r *ThreadMessagesCursorPageAutoPager[T]) Current() T {
+	return r.cur
+}
+
+func (r *ThreadMessagesCursorPageAutoPager[T]) Err() error {
+	return r.err
+}
+
+func (r *ThreadMessagesCursorPageAutoPager[T]) Index() int {
+	return r.run
+}
