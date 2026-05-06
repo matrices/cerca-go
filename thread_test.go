@@ -107,6 +107,35 @@ func TestThreadListWithOptionalParams(t *testing.T) {
 	}
 }
 
+func TestThreadActivityWithOptionalParams(t *testing.T) {
+	baseURL := "http://localhost:4010"
+	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
+		baseURL = envURL
+	}
+	if !testutil.CheckTestServer(t, baseURL) {
+		return
+	}
+	client := cercago.NewClient(
+		option.WithBaseURL(baseURL),
+		option.WithAPIKey("My API Key"),
+	)
+	_, err := client.Threads.Activity(
+		context.TODO(),
+		"agent_abc123",
+		"thread_abc123",
+		cercago.ThreadActivityParams{
+			FleetID: cercago.F("fleetId"),
+		},
+	)
+	if err != nil {
+		var apierr *cercago.Error
+		if errors.As(err, &apierr) {
+			t.Log(string(apierr.DumpRequest(true)))
+		}
+		t.Fatalf("err should be nil: %s", err.Error())
+	}
+}
+
 func TestThreadCancel(t *testing.T) {
 	baseURL := "http://localhost:4010"
 	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
@@ -175,6 +204,37 @@ func TestThreadCompact(t *testing.T) {
 		context.TODO(),
 		"agent_abc123",
 		"thread_abc123",
+	)
+	if err != nil {
+		var apierr *cercago.Error
+		if errors.As(err, &apierr) {
+			t.Log(string(apierr.DumpRequest(true)))
+		}
+		t.Fatalf("err should be nil: %s", err.Error())
+	}
+}
+
+func TestThreadListMessagesWithOptionalParams(t *testing.T) {
+	baseURL := "http://localhost:4010"
+	if envURL, ok := os.LookupEnv("TEST_API_BASE_URL"); ok {
+		baseURL = envURL
+	}
+	if !testutil.CheckTestServer(t, baseURL) {
+		return
+	}
+	client := cercago.NewClient(
+		option.WithBaseURL(baseURL),
+		option.WithAPIKey("My API Key"),
+	)
+	_, err := client.Threads.ListMessages(
+		context.TODO(),
+		"agent_abc123",
+		"thread_abc123",
+		cercago.ThreadListMessagesParams{
+			Cursor:  cercago.F("42"),
+			FleetID: cercago.F("fleetId"),
+			Limit:   cercago.F("100"),
+		},
 	)
 	if err != nil {
 		var apierr *cercago.Error

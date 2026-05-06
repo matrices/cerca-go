@@ -1,4 +1,4 @@
-configured_endpoints: 64
-openapi_spec_url: https://storage.googleapis.com/stainless-sdk-openapi-specs/calvinfo-o4h6u5/cerca-08ea9ff0ea5ef921240a415bb9c86bd8d91ffd24202dd93b92c40ca898c1ea79.yml
-openapi_spec_hash: 2a240632b5ef4814881e36247ec3c8dc
-config_hash: d7813de4c773d936f777a4ff5c8f21e5
+configured_endpoints: 66
+openapi_spec_url: https://storage.googleapis.com/stainless-sdk-openapi-specs/calvinfo-o4h6u5/cerca-ac234bc99ff4a8fe8800dfbd2255d074b2a984d9a1ca51eb54dfddaaacab5203.yml
+openapi_spec_hash: d1e63b49a56f6c27dc3dac475c34d612
+config_hash: 3bcf00273ec489dd930cc22656eabb4d
