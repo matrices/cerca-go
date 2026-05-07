@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 (2026-05-06)
+
+Full Changelog: [v0.1.0...v0.2.0](https://github.com/matrices/cerca-go/compare/v0.1.0...v0.2.0)
+
+### Features
+
+* **api:** api update ([d64f019](https://github.com/matrices/cerca-go/commit/d64f019fa5da77a390e42a75244c1fc96f762865))
+
 ## 0.1.0 (2026-05-01)
 
 Full Changelog: [v0.0.1...v0.1.0](https://github.com/matrices/cerca-go/compare/v0.0.1...v0.1.0)

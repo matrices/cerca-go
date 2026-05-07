@@ -95,6 +95,23 @@ func (r *ThreadService) ListAutoPaging(ctx context.Context, agentID string, quer
 	return pagination.NewThreadsCursorPageAutoPager(r.List(ctx, agentID, query, opts...))
 }
 
+// Fetch compact current and recent activity for a thread without returning
+// transcript content or runtime debug state.
+func (r *ThreadService) Activity(ctx context.Context, agentID string, threadID string, query ThreadActivityParams, opts ...option.RequestOption) (res *ActivityDetail, err error) {
+	opts = slices.Concat(r.Options, opts)
+	if agentID == "" {
+		err = errors.New("missing required agentId parameter")
+		return nil, err
+	}
+	if threadID == "" {
+		err = errors.New("missing required threadId parameter")
+		return nil, err
+	}
+	path := fmt.Sprintf("agents/%s/threads/%s/activity", agentID, threadID)
+	err = requestconfig.ExecuteNewRequest(ctx, http.MethodGet, path, query, &res, opts...)
+	return res, err
+}
+
 // Cancel a running or awaiting thread. The underlying runtime treats repeat
 // cancellation as an idempotent lifecycle operation when possible.
 func (r *ThreadService) Cancel(ctx context.Context, agentID string, threadID string, opts ...option.RequestOption) (res *Thread, err error) {
@@ -146,6 +163,39 @@ func (r *ThreadService) Compact(ctx context.Context, agentID string, threadID st
 	return res, err
 }
 
+// List a bounded page of transcript messages for a thread, newest first. Use the
+// returned `cursor` to page older messages.
+func (r *ThreadService) ListMessages(ctx context.Context, agentID string, threadID string, query ThreadListMessagesParams, opts ...option.RequestOption) (res *pagination.ThreadMessagesCursorPage[Message], err error) {
+	var raw *http.Response
+	opts = slices.Concat(r.Options, opts)
+	opts = append([]option.RequestOption{option.WithResponseInto(&raw)}, opts...)
+	if agentID == "" {
+		err = errors.New("missing required agentId parameter")
+		return nil, err
+	}
+	if threadID == "" {
+		err = errors.New("missing required threadId parameter")
+		return nil, err
+	}
+	path := fmt.Sprintf("agents/%s/threads/%s/messages", agentID, threadID)
+	cfg, err := requestconfig.NewRequestConfig(ctx, http.MethodGet, path, query, &res, opts...)
+	if err != nil {
+		return nil, err
+	}
+	err = cfg.Execute()
+	if err != nil {
+		return nil, err
+	}
+	res.SetPageConfig(cfg, raw)
+	return res, nil
+}
+
+// List a bounded page of transcript messages for a thread, newest first. Use the
+// returned `cursor` to page older messages.
+func (r *ThreadService) ListMessagesAutoPaging(ctx context.Context, agentID string, threadID string, query ThreadListMessagesParams, opts ...option.RequestOption) *pagination.ThreadMessagesCursorPageAutoPager[Message] {
+	return pagination.NewThreadMessagesCursorPageAutoPager(r.ListMessages(ctx, agentID, threadID, query, opts...))
+}
+
 // Create turn
 func (r *ThreadService) StartTurn(ctx context.Context, agentID string, threadID string, body ThreadStartTurnParams, opts ...option.RequestOption) (res *Turn, err error) {
 	opts = slices.Concat(r.Options, opts)
@@ -177,6 +227,78 @@ func (r *ThreadService) Steer(ctx context.Context, agentID string, threadID stri
 	path := fmt.Sprintf("agents/%s/threads/%s/steer", agentID, threadID)
 	err = requestconfig.ExecuteNewRequest(ctx, http.MethodPost, path, body, &res, opts...)
 	return res, err
+}
+
+type ActivityDetail struct {
+	Error       string              `json:"error" api:"required,nullable"`
+	RecentTurns []ThreadTurnSummary `json:"recentTurns" api:"required"`
+	JSON        activityDetailJSON  `json:"-"`
+	ActivitySummary
+}
+
+// activityDetailJSON contains the JSON metadata for the struct [ActivityDetail]
+type activityDetailJSON struct {
+	Error       apijson.Field
+	RecentTurns apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *ActivityDetail) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r activityDetailJSON) RawJSON() string {
+	return r.raw
+}
+
+type ActivitySummary struct {
+	ID             string  `json:"id" api:"required"`
+	CompletedAt    string  `json:"completedAt" api:"required,nullable"`
+	CreatedAt      string  `json:"createdAt" api:"required"`
+	Goal           string  `json:"goal" api:"required"`
+	LatestActivity string  `json:"latestActivity" api:"required,nullable"`
+	MessageCount   float64 `json:"messageCount" api:"required"`
+	Model          string  `json:"model" api:"required"`
+	NextStep       string  `json:"nextStep" api:"required,nullable"`
+	ParentThreadID string  `json:"parentThreadId" api:"required,nullable"`
+	Result         string  `json:"result" api:"required,nullable"`
+	ScheduleID     string  `json:"scheduleId" api:"required,nullable"`
+	// `idle` threads can accept a new turn or be closed. `running` threads have an
+	// active turn. `awaiting` threads are paused on external input such as approvals.
+	// `closed` threads are terminal.
+	Status    Status              `json:"status" api:"required"`
+	StepCount float64             `json:"stepCount" api:"required"`
+	UpdatedAt string              `json:"updatedAt" api:"required"`
+	JSON      activitySummaryJSON `json:"-"`
+}
+
+// activitySummaryJSON contains the JSON metadata for the struct [ActivitySummary]
+type activitySummaryJSON struct {
+	ID             apijson.Field
+	CompletedAt    apijson.Field
+	CreatedAt      apijson.Field
+	Goal           apijson.Field
+	LatestActivity apijson.Field
+	MessageCount   apijson.Field
+	Model          apijson.Field
+	NextStep       apijson.Field
+	ParentThreadID apijson.Field
+	Result         apijson.Field
+	ScheduleID     apijson.Field
+	Status         apijson.Field
+	StepCount      apijson.Field
+	UpdatedAt      apijson.Field
+	raw            string
+	ExtraFields    map[string]apijson.Field
+}
+
+func (r *ActivitySummary) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r activitySummaryJSON) RawJSON() string {
+	return r.raw
 }
 
 type CompiledContext struct {
@@ -588,6 +710,30 @@ func (r MessageRole) IsKnown() bool {
 	return false
 }
 
+type MessagePage struct {
+	Cursor   string          `json:"cursor" api:"required,nullable"`
+	HasMore  bool            `json:"hasMore" api:"required"`
+	Messages []Message       `json:"messages" api:"required"`
+	JSON     messagePageJSON `json:"-"`
+}
+
+// messagePageJSON contains the JSON metadata for the struct [MessagePage]
+type messagePageJSON struct {
+	Cursor      apijson.Field
+	HasMore     apijson.Field
+	Messages    apijson.Field
+	raw         string
+	ExtraFields map[string]apijson.Field
+}
+
+func (r *MessagePage) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r messagePageJSON) RawJSON() string {
+	return r.raw
+}
+
 // `idle` threads can accept a new turn or be closed. `running` threads have an
 // active turn. `awaiting` threads are paused on external input such as approvals.
 // `closed` threads are terminal.
@@ -723,9 +869,11 @@ type Thread struct {
 	CreatedAt       string               `json:"createdAt" api:"required"`
 	Depth           float64              `json:"depth" api:"required"`
 	Error           string               `json:"error" api:"required,nullable"`
+	HasMoreMessages bool                 `json:"hasMoreMessages" api:"required"`
 	Instructions    string               `json:"instructions" api:"required,nullable"`
 	LastTurnStatus  ThreadLastTurnStatus `json:"lastTurnStatus" api:"required,nullable"`
 	Message         string               `json:"message" api:"required"`
+	MessageCursor   float64              `json:"messageCursor" api:"required,nullable"`
 	Messages        []Message            `json:"messages" api:"required"`
 	Model           string               `json:"model" api:"required"`
 	ParentThreadID  string               `json:"parentThreadId" api:"required,nullable"`
@@ -753,9 +901,11 @@ type threadJSON struct {
 	CreatedAt              apijson.Field
 	Depth                  apijson.Field
 	Error                  apijson.Field
+	HasMoreMessages        apijson.Field
 	Instructions           apijson.Field
 	LastTurnStatus         apijson.Field
 	Message                apijson.Field
+	MessageCursor          apijson.Field
 	Messages               apijson.Field
 	Model                  apijson.Field
 	ParentThreadID         apijson.Field
@@ -879,6 +1029,52 @@ func (r threadSummaryJSON) RawJSON() string {
 	return r.raw
 }
 
+type ThreadTurnSummary struct {
+	Activity     string                  `json:"activity" api:"required,nullable"`
+	CompletedAt  string                  `json:"completedAt" api:"required"`
+	MessageCount float64                 `json:"messageCount" api:"required"`
+	NextStep     string                  `json:"nextStep" api:"required,nullable"`
+	Status       ThreadTurnSummaryStatus `json:"status" api:"required"`
+	TurnSeq      float64                 `json:"turnSeq" api:"required"`
+	JSON         threadTurnSummaryJSON   `json:"-"`
+}
+
+// threadTurnSummaryJSON contains the JSON metadata for the struct
+// [ThreadTurnSummary]
+type threadTurnSummaryJSON struct {
+	Activity     apijson.Field
+	CompletedAt  apijson.Field
+	MessageCount apijson.Field
+	NextStep     apijson.Field
+	Status       apijson.Field
+	TurnSeq      apijson.Field
+	raw          string
+	ExtraFields  map[string]apijson.Field
+}
+
+func (r *ThreadTurnSummary) UnmarshalJSON(data []byte) (err error) {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+func (r threadTurnSummaryJSON) RawJSON() string {
+	return r.raw
+}
+
+type ThreadTurnSummaryStatus string
+
+const (
+	ThreadTurnSummaryStatusCompleted ThreadTurnSummaryStatus = "completed"
+	ThreadTurnSummaryStatusFailed    ThreadTurnSummaryStatus = "failed"
+)
+
+func (r ThreadTurnSummaryStatus) IsKnown() bool {
+	switch r {
+	case ThreadTurnSummaryStatusCompleted, ThreadTurnSummaryStatusFailed:
+		return true
+	}
+	return false
+}
+
 type TokenUsage struct {
 	InputTokens  float64        `json:"inputTokens" api:"required"`
 	OutputTokens float64        `json:"outputTokens" api:"required"`
@@ -978,7 +1174,9 @@ func (r ThreadNewParams) MarshalJSON() (data []byte, err error) {
 type ThreadGetParams struct {
 	// When true, includes debug-only compiled context fields.
 	Debug param.Field[ThreadGetParamsDebug] `query:"debug"`
-	// When true, includes message content in the thread detail.
+	// Deprecated compatibility flag. Thread detail includes a bounded recent message
+	// page by default; pass `false` only to opt out when no message pagination params
+	// are present.
 	IncludeMessages param.Field[ThreadGetParamsIncludeMessages] `query:"includeMessages"`
 }
 
@@ -1006,7 +1204,9 @@ func (r ThreadGetParamsDebug) IsKnown() bool {
 	return false
 }
 
-// When true, includes message content in the thread detail.
+// Deprecated compatibility flag. Thread detail includes a bounded recent message
+// page by default; pass `false` only to opt out when no message pagination params
+// are present.
 type ThreadGetParamsIncludeMessages string
 
 const (
@@ -1036,6 +1236,37 @@ type ThreadListParams struct {
 
 // URLQuery serializes [ThreadListParams]'s query parameters as `url.Values`.
 func (r ThreadListParams) URLQuery() (v url.Values) {
+	return apiquery.MarshalWithSettings(r, apiquery.QuerySettings{
+		ArrayFormat:  apiquery.ArrayQueryFormatComma,
+		NestedFormat: apiquery.NestedQueryFormatBrackets,
+	})
+}
+
+type ThreadActivityParams struct {
+	// Optional fleet id for index-backed authorization.
+	FleetID param.Field[string] `query:"fleetId"`
+}
+
+// URLQuery serializes [ThreadActivityParams]'s query parameters as `url.Values`.
+func (r ThreadActivityParams) URLQuery() (v url.Values) {
+	return apiquery.MarshalWithSettings(r, apiquery.QuerySettings{
+		ArrayFormat:  apiquery.ArrayQueryFormatComma,
+		NestedFormat: apiquery.NestedQueryFormatBrackets,
+	})
+}
+
+type ThreadListMessagesParams struct {
+	// Cursor returned by a previous thread messages response.
+	Cursor param.Field[string] `query:"cursor"`
+	// Optional fleet id for index-backed authorization.
+	FleetID param.Field[string] `query:"fleetId"`
+	// Maximum number of messages to include, capped at 500.
+	Limit param.Field[string] `query:"limit"`
+}
+
+// URLQuery serializes [ThreadListMessagesParams]'s query parameters as
+// `url.Values`.
+func (r ThreadListMessagesParams) URLQuery() (v url.Values) {
 	return apiquery.MarshalWithSettings(r, apiquery.QuerySettings{
 		ArrayFormat:  apiquery.ArrayQueryFormatComma,
 		NestedFormat: apiquery.NestedQueryFormatBrackets,
