@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.1 (2026-05-08)
+
+Full Changelog: [v0.2.0...v0.2.1](https://github.com/matrices/cerca-go/compare/v0.2.0...v0.2.1)
+
+### Bug Fixes
+
+* **go:** avoid panic when http.DefaultTransport is wrapped ([5e9bf58](https://github.com/matrices/cerca-go/commit/5e9bf580e3d7bafd21fd8d60e14c22b37498f963))
+
+
+### Chores
+
+* redact api-key headers in debug logs ([15caa73](https://github.com/matrices/cerca-go/commit/15caa732754d2ec0410724dea21b388831dbaf33))
+
 ## 0.2.0 (2026-05-06)
 
 Full Changelog: [v0.1.0...v0.2.0](https://github.com/matrices/cerca-go/compare/v0.1.0...v0.2.0)
