@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 (2026-07-18)
+
+Full Changelog: [v0.2.2...v0.3.0](https://github.com/matrices/cerca-go/compare/v0.2.2...v0.3.0)
+
+### Features
+
+* **stlc:** configurable CI runner and private-production-repo support in workflow templates ([9bc5534](https://github.com/matrices/cerca-go/commit/9bc55348d54ffabf8a02bc5a89766bd3a9961df8))
+
 ## 0.2.2 (2026-05-13)
 
 Full Changelog: [v0.2.1...v0.2.2](https://github.com/matrices/cerca-go/compare/v0.2.1...v0.2.2)
